@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>分帳小幫手</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="分帳">
+<meta name="theme-color" content="#6B8E5A">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: 'Noto Sans TC', system-ui, sans-serif;
+    color: #44403C;
+    background:
+      radial-gradient(at 0% 0%, #FFE4E6 0px, transparent 50%),
+      radial-gradient(at 100% 0%, #FEF3C7 0px, transparent 50%),
+      radial-gradient(at 50% 100%, #FCE7F3 0px, transparent 50%),
+      #FFF7F0;
+    background-attachment: fixed;
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #FB7185, #F472B6);
+    color: white;
+    transition: all 0.15s;
+    box-shadow: 0 4px 12px rgba(244, 114, 182, 0.35);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #F43F5E, #EC4899);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(244, 114, 182, 0.45);
+  }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .input-base {
+    background-color: #FFF7F0;
+    border: 2px solid #FCE7F3;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    font-size: 15px;
+    font-weight: 500;
+    color: #44403C;
+    transition: all 0.15s;
+  }
+  .input-base:focus {
+    outline: none;
+    background-color: white;
+    border-color: #FB7185;
+    box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.15);
+  }
+
+  .label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #BE185D;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .label::before { content: '✿'; color: #F472B6; font-size: 10px; }
+
+  .card {
+    background: white;
+    border: 2px solid #FFE4E6;
+    border-radius: 1.25rem;
+    transition: all 0.15s;
+    box-shadow: 0 2px 6px rgba(251, 113, 133, 0.06);
+  }
+  .card:hover { border-color: #FBCFE8; box-shadow: 0 4px 12px rgba(251, 113, 133, 0.1); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background-color: #FFF1F2;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem 0.35rem 0.4rem;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+    color: #9F1239;
+  }
+  .chip:hover { background-color: #FFE4E6; transform: translateY(-1px); }
+  .chip.selected {
+    background: linear-gradient(135deg, #FB7185, #F472B6);
+    border-color: #EC4899;
+    color: white;
+    box-shadow: 0 3px 8px rgba(244, 114, 182, 0.35);
+  }
+
+  .avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+  .avatar.emoji-av {
+    background: white;
+    border: 2px solid;
+  }
+  .av-0 { background: linear-gradient(135deg, #FDA4AF, #FB7185); }
+  .av-1 { background: linear-gradient(135deg, #A7F3D0, #34D399); }
+  .av-2 { background: linear-gradient(135deg, #FDE68A, #FBBF24); }
+  .av-3 { background: linear-gradient(135deg, #F9A8D4, #F472B6); }
+  .av-4 { background: linear-gradient(135deg, #99F6E4, #2DD4BF); }
+  .av-5 { background: linear-gradient(135deg, #C4B5FD, #A78BFA); }
+  .av-6 { background: linear-gradient(135deg, #FCA5A5, #F87171); }
+  .av-7 { background: linear-gradient(135deg, #BAE6FD, #60A5FA); }
+  .av-0.emoji-av { border-color: #FDA4AF; background: #FFF1F2; }
+  .av-1.emoji-av { border-color: #A7F3D0; background: #ECFDF5; }
+  .av-2.emoji-av { border-color: #FDE68A; background: #FFFBEB; }
+  .av-3.emoji-av { border-color: #F9A8D4; background: #FDF2F8; }
+  .av-4.emoji-av { border-color: #99F6E4; background: #F0FDFA; }
+  .av-5.emoji-av { border-color: #C4B5FD; background: #F5F3FF; }
+  .av-6.emoji-av { border-color: #FCA5A5; background: #FEF2F2; }
+  .av-7.emoji-av { border-color: #BAE6FD; background: #EFF6FF; }
+
+  .toggle-wrap { position: relative; display: inline-block; width: 40px; height: 22px; }
+  .toggle-wrap input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .toggle-track { position: absolute; inset: 0; background: #FCE7F3; border-radius: 999px; transition: background 0.15s; cursor: pointer; }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: transform 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle-wrap input:checked ~ .toggle-track { background: linear-gradient(135deg, #FB7185, #F472B6); }
+  .toggle-wrap input:checked ~ .toggle-thumb { transform: translateX(18px); }
+
+  .emoji-pick-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: white;
+    border: 2px solid #FFE4E6;
+    font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .emoji-pick-btn:hover { background: #FFF1F2; transform: scale(1.08); }
+  .emoji-pick-btn.selected { border-color: #FB7185; background: linear-gradient(135deg, #FFE4E6, #FCE7F3); transform: scale(1.05); box-shadow: 0 4px 10px rgba(244, 114, 182, 0.3); }
+
+  .modal { display: none; }
+  .modal.show { display: flex; }
+  .modal-backdrop { animation: fadeIn 0.15s ease-out; }
+  .modal-content { animation: slideUp 0.2s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-content { display: none; }
+  .page-content.active { display: block; animation: fadeIn 0.18s ease-out; }
+
+  .settled-row { opacity: 0.55; }
+
+  .tab-btn { color: #A8A29E; }
+  .tab-btn.active { color: #EC4899; }
+  .tab-btn.active .tab-dot { background: linear-gradient(135deg, #FB7185, #F472B6); opacity: 1; }
+  .tab-dot { opacity: 0; transition: opacity 0.15s; }
+
+  @media (min-width: 768px) {
+    .mobile-only { display: none !important; }
+    .tab-btn.active.desktop-tab { background: linear-gradient(135deg, #FFE4E6, #FCE7F3); }
+  }
+  @media (max-width: 767.98px) {
+    .desktop-only { display: none !important; }
+  }
+
+  *:focus { outline: none; }
+  *:focus-visible { outline: 2px solid #FB7185; outline-offset: 2px; }
+
+  .danger-card {
+    background: linear-gradient(135deg, #FEF2F2, #FFF1F2);
+    border: 2px dashed #FECACA;
+    border-radius: 1.25rem;
+  }
+
+  .stat-num { font-variant-numeric: tabular-nums; }
+
+  body { padding-top: env(safe-area-inset-top); }
+  .bottom-nav-pad { padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)); }
+
+  /* ====================================================== */
+  /* ===== TOTORO 主題覆蓋層 (龍貓樹下) ===== */
+  /* ====================================================== */
+  :root {
+    --t-bg: #F5EBDC;
+    --t-bg-soft: #EFE3D0;
+    --t-primary: #6B8E5A;
+    --t-primary-dark: #4A6B3E;
+    --t-primary-soft: #D9DFC5;
+    --t-primary-tint: #ECF0DC;
+    --t-cta: #C66B5C;
+    --t-cta-dark: #A8533F;
+    --t-cta-soft: #F4DDD9;
+    --t-accent: #D4A547;
+    --t-accent-soft: #F4E2A5;
+    --t-accent-dark: #7A5D14;
+    --t-text: #3D2E1F;
+    --t-text-soft: #6B5340;
+    --t-text-dim: #9C8770;
+    --t-card: #FDFBF4;
+    --t-border: #C4B89A;
+    --t-border-soft: #E5DBC2;
+    --t-danger: #A83F3B;
+    --t-success: #6B8E5A;
+  }
+
+  body {
+    color: var(--t-text) !important;
+    background-color: var(--t-bg) !important;
+    background-image:
+      radial-gradient(ellipse at top left, rgba(212,165,71,0.12), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(107,142,90,0.08), transparent 50%),
+      url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.06 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>") !important;
+    background-size: auto, auto, 180px 180px !important;
+    background-attachment: fixed !important;
+  }
+
+  /* 元件主題 */
+  .btn-primary {
+    background: var(--t-cta) !important;
+    color: var(--t-card) !important;
+    border: 1.5px solid var(--t-cta-dark) !important;
+    border-radius: 0.9rem !important;
+    box-shadow: 0 3px 0 var(--t-cta-dark) !important;
+    font-weight: 800 !important;
+  }
+  .btn-primary:hover { background: var(--t-cta-dark) !important; transform: none !important; box-shadow: 0 3px 0 var(--t-cta-dark) !important; }
+  .btn-primary:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 var(--t-cta-dark) !important; }
+
+  .input-base {
+    background-color: var(--t-card) !important;
+    border: 1.5px solid var(--t-border) !important;
+    border-radius: 0.9rem !important;
+    color: var(--t-text) !important;
+  }
+  .input-base:focus {
+    background-color: white !important;
+    border-color: var(--t-primary) !important;
+    box-shadow: 0 0 0 3px rgba(107,142,90,0.18) !important;
+  }
+
+  .label { color: var(--t-primary-dark) !important; }
+  .label::before { content: '✿' !important; color: var(--t-accent) !important; }
+
+  .card {
+    background: var(--t-card) !important;
+    border: 1.5px solid var(--t-border) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 2px 0 var(--t-border-soft), 0 6px 18px rgba(74, 60, 45, 0.06) !important;
+  }
+  .card:hover { border-color: var(--t-primary) !important; }
+
+  .chip {
+    background: var(--t-bg-soft) !important;
+    border: 1.5px solid var(--t-border-soft) !important;
+    color: var(--t-text-soft) !important;
+  }
+  .chip:hover { background: var(--t-primary-soft) !important; transform: translateY(-1px) !important; }
+  .chip.selected {
+    background: var(--t-primary) !important;
+    border-color: var(--t-primary-dark) !important;
+    color: var(--t-card) !important;
+    box-shadow: 0 2px 0 var(--t-primary-dark) !important;
+  }
+
+  .avatar { line-height: 1 !important; }
+  .avatar.emoji-av { border-width: 2px !important; border-style: solid !important; }
+  .av-0, .av-0.emoji-av { border-color: #94A86A !important; background: #ECF0DC !important; }
+  .av-1, .av-1.emoji-av { border-color: #D4A547 !important; background: #F4E2A5 !important; }
+  .av-2, .av-2.emoji-av { border-color: #C66B5C !important; background: #F4DDD9 !important; }
+  .av-3, .av-3.emoji-av { border-color: #6FA0BD !important; background: #DDE9F1 !important; }
+  .av-4, .av-4.emoji-av { border-color: #C28860 !important; background: #F5E1CE !important; }
+  .av-5, .av-5.emoji-av { border-color: #A8B89A !important; background: #DEE5D6 !important; }
+  .av-6, .av-6.emoji-av { border-color: #C4B89A !important; background: #F5EBDC !important; }
+  .av-7, .av-7.emoji-av { border-color: #B0A0C8 !important; background: #E8DFF0 !important; }
+
+  .toggle-track { background: var(--t-border-soft) !important; }
+  .toggle-wrap input:checked ~ .toggle-track { background: var(--t-primary) !important; }
+
+  .emoji-pick-btn {
+    background: var(--t-card) !important;
+    border: 2px solid var(--t-border-soft) !important;
+  }
+  .emoji-pick-btn:hover { background: var(--t-bg-soft) !important; }
+  .emoji-pick-btn.selected { border-color: var(--t-primary) !important; background: var(--t-primary-tint) !important; }
+
+  .tab-btn { color: var(--t-text-dim) !important; }
+  .tab-btn.active { color: var(--t-primary-dark) !important; }
+  .tab-btn.active .tab-dot { background: var(--t-primary) !important; }
+  .tab-btn.active.desktop-tab { background: var(--t-primary-tint) !important; }
+
+  .danger-card {
+    background: #FBE5DF !important;
+    border: 1.5px solid #C66B5C !important;
+    border-radius: 1.25rem !important;
+  }
+
+  .me-badge {
+    color: var(--t-cta-dark);
+    background: var(--t-cta-soft);
+    font-weight: 900;
+    font-size: 10px;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.3rem;
+    display: inline-block;
+  }
+
+  /* Tailwind 顏色覆蓋 - 文字 */
+  .text-rose-700, .text-rose-600 { color: var(--t-primary-dark) !important; }
+  .text-rose-500 { color: var(--t-cta) !important; }
+  .text-rose-400 { color: var(--t-accent-dark) !important; }
+  .text-pink-500, .text-pink-600 { color: var(--t-text-soft) !important; }
+  .text-pink-400 { color: var(--t-text-dim) !important; }
+  .text-pink-300 { color: var(--t-border) !important; }
+  .text-pink-200 { color: var(--t-border-soft) !important; }
+  .text-amber-600, .text-amber-700 { color: var(--t-accent-dark) !important; }
+  .text-amber-400, .text-amber-500 { color: var(--t-accent) !important; }
+  .text-emerald-600, .text-emerald-700, .text-emerald-500 { color: var(--t-success) !important; }
+  .text-slate-600, .text-slate-700, .text-slate-900 { color: var(--t-text) !important; }
+  .text-slate-500 { color: var(--t-text-soft) !important; }
+  .text-slate-400 { color: var(--t-text-dim) !important; }
+  .text-slate-300 { color: var(--t-border) !important; }
+  .text-violet-700 { color: #8B6F2A !important; }
+  .text-indigo-600, .text-indigo-700 { color: var(--t-primary-dark) !important; }
+
+  .hover\:text-rose-600:hover, .hover\:text-rose-700:hover { color: var(--t-primary-dark) !important; }
+  .hover\:text-pink-500:hover, .hover\:text-pink-600:hover { color: var(--t-text-soft) !important; }
+  .hover\:text-indigo-600:hover, .hover\:text-indigo-700:hover { color: var(--t-primary-dark) !important; }
+
+  /* Tailwind 顏色覆蓋 - 背景 */
+  .bg-pink-50 { background-color: var(--t-bg-soft) !important; }
+  .bg-pink-100 { background-color: var(--t-primary-tint) !important; }
+  .bg-pink-200 { background-color: var(--t-primary-soft) !important; }
+  .bg-rose-50 { background-color: var(--t-cta-soft) !important; }
+  .bg-rose-500 { background-color: var(--t-cta) !important; }
+  .bg-amber-50 { background-color: rgba(212,165,71,0.12) !important; }
+  .bg-amber-100 { background-color: var(--t-accent-soft) !important; }
+  .bg-emerald-50 { background-color: var(--t-primary-tint) !important; }
+  .bg-emerald-100 { background-color: var(--t-primary-soft) !important; }
+  .bg-emerald-500 { background-color: var(--t-success) !important; }
+  .bg-violet-100 { background-color: #F4E5C9 !important; }
+  .bg-slate-100, .bg-slate-200 { background-color: var(--t-bg-soft) !important; }
+  .bg-indigo-50 { background-color: var(--t-primary-tint) !important; }
+  .bg-indigo-100 { background-color: var(--t-primary-soft) !important; }
+
+  .hover\:bg-pink-50:hover { background-color: var(--t-bg-soft) !important; }
+  .hover\:bg-pink-100:hover { background-color: var(--t-primary-tint) !important; }
+  .hover\:bg-pink-200:hover { background-color: var(--t-primary-soft) !important; }
+  .hover\:bg-rose-50:hover { background-color: var(--t-cta-soft) !important; }
+  .hover\:bg-amber-50:hover { background-color: rgba(212,165,71,0.12) !important; }
+  .hover\:bg-slate-50:hover, .hover\:bg-slate-100:hover { background-color: var(--t-bg-soft) !important; }
+  .hover\:bg-slate-200:hover { background-color: var(--t-border-soft) !important; }
+  .hover\:bg-indigo-100:hover { background-color: var(--t-primary-soft) !important; }
+  .hover\:bg-emerald-50:hover { background-color: var(--t-primary-tint) !important; }
+
+  /* Tailwind 顏色覆蓋 - 邊框 */
+  .border-pink-100 { border-color: var(--t-border-soft) !important; }
+  .border-pink-200 { border-color: var(--t-border) !important; }
+  .border-pink-300 { border-color: var(--t-primary) !important; }
+  .border-pink-400 { border-color: var(--t-primary-dark) !important; }
+  .border-rose-100 { border-color: var(--t-cta-soft) !important; }
+  .border-rose-200 { border-color: var(--t-cta) !important; }
+  .border-amber-200 { border-color: var(--t-accent) !important; }
+  .border-emerald-200 { border-color: var(--t-primary) !important; }
+  .border-slate-100, .border-slate-200 { border-color: var(--t-border-soft) !important; }
+  .border-violet-200 { border-color: #C8A555 !important; }
+  .border-indigo-200, .border-indigo-300 { border-color: var(--t-primary) !important; }
+
+  .hover\:border-pink-300:hover { border-color: var(--t-primary) !important; }
+  .hover\:border-pink-400:hover { border-color: var(--t-primary-dark) !important; }
+  .hover\:border-rose-400:hover { border-color: var(--t-cta) !important; }
+  .hover\:border-indigo-300:hover, .hover\:border-indigo-400:hover { border-color: var(--t-primary) !important; }
+
+  .divide-pink-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--t-border-soft) !important; }
+  .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--t-border-soft) !important; }
+
+  /* Toast */
+  #toast { background: var(--t-primary-dark) !important; box-shadow: 0 4px 14px rgba(74,60,45,0.2) !important; }
+
+  /* ===== Level 1: native app 感 ===== */
+  /* 啟動畫面淡出 */
+  #splash-screen { transition: opacity 0.4s ease-out; }
+  #splash-screen.hide { opacity: 0; pointer-events: none; }
+
+  /* 禁止 web 彈跳效果 */
+  html, body { overscroll-behavior: none; }
+
+  /* 按鈕點擊回饋(微縮放,像真按鍵) */
+  button:active, .tab-btn:active, .chip:active { transition: transform 0.05s ease-out; }
+  .tab-btn:active { transform: scale(0.92); }
+  .recent-group-btn:active, .identity-pick:active, .sw-pick:active,
+  .expense-toggle:active, .pair-toggle:active, .src-expense-btn:active { transform: scale(0.98); }
+
+  /* 更新橫條動畫 */
+  #update-banner { animation: slideDown 0.3s ease-out; }
+  @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+  /* Page transitions 更平滑 */
+  .page-content.active { animation: fadePage 0.25s ease-out !important; }
+  @keyframes fadePage { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* 禁止手機縮放/雙擊放大 (native app 感) */
+  html, body {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  button, .chip, .avatar, .tab-btn, .emoji-pick-btn,
+  nav, header, .label, h1, h2, h3, h4 {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* 但允許選取群組碼、金額等需要複製的內容 */
+  input, textarea, #settings-group-code, .stat-num {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- ====== Splash Screen ====== -->
+  <div id="splash-screen" class="fixed inset-0 z-[999] flex items-center justify-center" style="background: #F5EBDC;">
+    <div class="text-center">
+      <img src="icon.png" alt="" class="inline-block w-24 h-24 rounded-[2rem] mb-4" style="box-shadow: 0 6px 0 rgba(74, 107, 62, 0.2), 0 12px 28px rgba(74, 107, 62, 0.18); object-fit: cover;" onerror="this.style.display='none'; document.getElementById('splash-fallback').style.display='inline-flex';">
+      <div id="splash-fallback" class="w-24 h-24 rounded-[2rem] items-center justify-center text-5xl mb-4 mx-auto" style="display: none; background: linear-gradient(135deg, #94A86A, #6B8E5A); box-shadow: 0 6px 0 #4A6B3E;">💸</div>
+      <h1 class="text-2xl font-black mb-1" style="color: #4A6B3E;">分帳小幫手</h1>
+      <p class="text-xs font-bold" style="color: #6B5340;">出門玩 · 輕鬆分 · 不傷感情</p>
+    </div>
+  </div>
+
+  <!-- ====== Update Banner ====== -->
+  <div id="update-banner" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-full text-xs font-black flex items-center gap-3" style="background: linear-gradient(135deg, #94A86A, #6B8E5A); color: white; box-shadow: 0 4px 14px rgba(74, 107, 62, 0.35); top: calc(1rem + env(safe-area-inset-top));">
+    <span>🆕 新版本已下載</span>
+    <button id="update-banner-btn" class="px-3 py-1 bg-white rounded-full font-black" style="color: #4A6B3E;">點此更新</button>
+  </div>
+
+  <!-- ====== Home Screen ====== -->
+  <div id="screen-home" class="flex-grow flex flex-col p-6 md:p-10 max-w-2xl mx-auto w-full">
+    <div class="text-center mt-6 md:mt-12 mb-10">
+      <img src="icon.png" alt="" class="inline-block w-24 h-24 rounded-[2rem] mb-5" style="box-shadow: 0 6px 0 rgba(74, 107, 62, 0.2), 0 12px 32px rgba(107, 142, 90, 0.25); object-fit: cover;" onerror="this.style.display='none'; document.getElementById('home-brand-fallback').style.display='inline-flex';">
+      <div id="home-brand-fallback" class="w-24 h-24 rounded-[2rem] items-center justify-center text-5xl mb-5 mx-auto" style="display: none; background: linear-gradient(135deg, #94A86A, #6B8E5A); box-shadow: 0 6px 0 #4A6B3E, 0 12px 32px rgba(107, 142, 90, 0.3);">💸</div>
+      <h1 class="text-3xl font-black text-rose-600 mb-1.5">分帳小幫手 ✨</h1>
+      <p class="text-sm font-bold text-pink-400">出門玩 · 輕鬆分 · 不傷感情 💕</p>
+    </div>
+
+    <div class="space-y-3 mb-10">
+      <button id="home-create-btn" class="w-full btn-primary rounded-2xl px-5 py-4 font-black text-base">🎀 建立新群組</button>
+      <button id="home-join-btn" class="w-full bg-white border-2 border-pink-200 hover:border-pink-400 hover:bg-pink-50 rounded-2xl px-5 py-4 font-black text-base text-rose-500 transition active:scale-[0.98]">🔑 加入群組</button>
+    </div>
+
+    <div id="home-recent-container" class="hidden">
+      <div class="label mb-3 px-1">我加入過的群組</div>
+      <div id="home-recent-list" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- ====== Identity Overlay ====== -->
+  <div id="screen-identity" class="hidden fixed inset-0 z-40 overflow-y-auto" style="background: linear-gradient(180deg, #F5EBDC, #ECF0DC);">
+    <div class="p-6 md:p-10 max-w-2xl mx-auto w-full">
+      <div class="text-center my-6">
+        <div class="inline-flex w-20 h-20 rounded-3xl items-center justify-center text-4xl mb-3" style="background: #ECF0DC; border: 1.5px solid #6B8E5A; box-shadow: 0 4px 0 #4A6B3E;">👋</div>
+        <h2 class="text-2xl font-black text-rose-600 mb-1">你是誰呀? ✨</h2>
+        <p id="identity-group-name" class="text-sm font-bold text-pink-400">--</p>
+      </div>
+      <div id="identity-member-list" class="space-y-2 mb-3"></div>
+      <button id="identity-add-member-btn" class="w-full border-2 border-dashed border-pink-300 hover:border-rose-400 text-pink-500 hover:text-rose-600 hover:bg-pink-50 rounded-2xl px-5 py-4 font-black text-sm transition">
+        + 我不在裡面,新增成員
+      </button>
+      <div class="mt-6 text-center">
+        <button id="identity-back-btn" class="text-sm font-black text-pink-400 hover:text-rose-600">← 返回群組列表</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== Main App ====== -->
+  <div id="screen-app" class="hidden flex-grow flex flex-col">
+    <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b-2 border-pink-100">
+      <div class="max-w-2xl mx-auto w-full px-4 md:px-6 py-3 flex items-center gap-3">
+        <button id="header-switcher-btn" class="flex items-center gap-2.5 text-left flex-grow min-w-0 hover:bg-pink-50 -mx-2 px-2 py-1.5 rounded-xl transition">
+          <div id="header-group-emoji" class="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style="background: #ECF0DC; border: 1.5px solid #6B8E5A;">🌳</div>
+          <div class="min-w-0 flex-grow">
+            <div class="flex items-center gap-1">
+              <h1 id="header-group-name" class="text-base font-black text-rose-700 truncate">--</h1>
+              <span class="text-pink-400 flex-shrink-0">▾</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] font-bold">
+              <span id="header-currency" class="text-amber-600">--</span>
+              <span class="text-pink-200">·</span>
+              <span id="header-member-count" class="text-pink-500">--</span>
+              <span class="text-pink-200">·</span>
+              <span id="header-user" class="text-rose-500 truncate">--</span>
+            </div>
+          </div>
+        </button>
+        <nav class="desktop-only flex items-center gap-1 flex-shrink-0">
+          <button data-tab="expenses" class="tab-btn desktop-tab px-3 py-2 rounded-xl font-black text-sm hover:bg-pink-50 transition">💸 支出</button>
+          <button data-tab="settle" class="tab-btn desktop-tab px-3 py-2 rounded-xl font-black text-sm hover:bg-pink-50 transition">🧮 結算</button>
+          <button data-tab="settings" class="tab-btn desktop-tab px-3 py-2 rounded-xl font-black text-sm hover:bg-pink-50 transition">🎀 設定</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-grow pb-28 md:pb-12">
+      <div class="max-w-2xl mx-auto w-full px-4 md:px-6 py-5">
+
+        <!-- Expenses -->
+        <section id="page-expenses" class="page-content">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-black text-rose-600">💸 支出列表</h2>
+            <select id="sort-select" class="bg-pink-100 hover:bg-pink-200 border-0 rounded-xl px-3 py-1.5 text-xs font-black text-rose-600 cursor-pointer">
+              <option value="date-desc">最新優先</option>
+              <option value="date-asc">最舊優先</option>
+              <option value="amount-desc">金額高到低</option>
+              <option value="amount-asc">金額低到高</option>
+            </select>
+          </div>
+          <div class="card p-4 mb-4 flex items-stretch divide-x-2 divide-pink-100">
+            <div class="flex-1 text-center px-2">
+              <div class="label justify-center mb-1">總支出</div>
+              <div id="sum-total" class="text-base md:text-lg font-black text-rose-700 stat-num">--</div>
+            </div>
+            <div class="flex-1 text-center px-2">
+              <div class="label justify-center mb-1">我的分擔</div>
+              <div id="sum-mine" class="text-base md:text-lg font-black text-pink-500 stat-num">--</div>
+            </div>
+            <div class="flex-1 text-center px-2">
+              <div class="label justify-center mb-1">筆數</div>
+              <div id="sum-count" class="text-base md:text-lg font-black text-rose-700 stat-num">--</div>
+            </div>
+          </div>
+          <div id="expense-list" class="space-y-3"></div>
+        </section>
+
+        <!-- Settle -->
+        <section id="page-settle" class="page-content">
+          <h2 class="text-xl font-black text-rose-600 mb-4">🧮 結算</h2>
+          <div id="personal-status-card" class="card p-6 mb-6 text-center">
+            <div class="label justify-center mb-2">你的狀態</div>
+            <div id="personal-status-amount" class="text-3xl font-black mb-1 stat-num">--</div>
+            <div id="personal-status-label" class="text-xs font-bold text-pink-500">--</div>
+          </div>
+          <div class="flex items-center justify-between mb-3 px-1">
+            <div class="label">還款清單 <span id="settle-count" class="text-pink-400 font-bold ml-1">--</span></div>
+            <span class="text-[10px] text-pink-400 font-bold">同對成員自動相抵 💕</span>
+          </div>
+          <div id="settlement-list" class="space-y-2"></div>
+        </section>
+
+        <!-- Settings -->
+        <section id="page-settings" class="page-content">
+          <h2 class="text-xl font-black text-rose-600 mb-4">🎀 設定</h2>
+
+          <div class="card p-5 mb-4">
+            <div class="label mb-3">群組資訊</div>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-sm font-bold text-pink-500 flex-shrink-0">名稱</span>
+                <button id="edit-group-name-btn" class="flex items-center gap-2 text-sm font-black text-rose-700 hover:text-pink-500 transition min-w-0">
+                  <span id="settings-group-name" class="truncate">--</span>
+                  <span class="text-pink-400">✏️</span>
+                </button>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-sm font-bold text-pink-500">幣別</span>
+                <select id="settings-currency" class="bg-pink-100 hover:bg-pink-200 border-0 rounded-xl px-3 py-1.5 text-sm font-black text-rose-700 cursor-pointer">
+                  <option value="TWD">台幣 NT$</option>
+                  <option value="JPY">日幣 ¥</option>
+                  <option value="KRW">韓元 ₩</option>
+                </select>
+              </div>
+              <div>
+                <div class="text-sm font-bold text-pink-500 mb-1.5">群組碼</div>
+                <div id="settings-group-code" class="text-xs font-mono bg-pink-50 text-rose-600 px-3 py-2 rounded-xl break-all mb-2 border-2 border-pink-100">--</div>
+                <div class="grid grid-cols-2 gap-2">
+                  <button id="copy-code-btn" class="py-2 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black transition">📋 複製群組碼</button>
+                  <button id="copy-url-btn" class="py-2 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black transition">🔗 複製程式網址</button>
+                </div>
+                <p class="text-[10px] text-amber-700 font-bold mt-2 leading-relaxed">
+                  💡 <span class="font-black">兩個分開傳</span>:朋友先用「程式網址」開 app(或加到桌面),再用「群組碼」加入此群組。<br>避免誤會「點連結就會自動同步到桌面 app」。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card p-5 mb-4">
+            <div class="label mb-3">我的身份</div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div id="settings-my-avatar" class="avatar emoji-av w-11 h-11 text-xl av-0">?</div>
+                <span id="settings-my-name" class="font-black text-rose-700">--</span>
+              </div>
+              <button id="switch-identity-btn" class="text-sm font-black text-pink-500 hover:text-rose-600">切換身份</button>
+            </div>
+            <p class="text-[10px] text-pink-400 font-bold mt-2">💡 點頭像可換 emoji</p>
+          </div>
+
+          <div class="card p-5 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="label">成員</div>
+              <button id="add-member-settings-btn" class="text-sm font-black text-pink-500 hover:text-rose-600">+ 新增成員</button>
+            </div>
+            <div id="settings-member-list" class="space-y-1"></div>
+          </div>
+
+          <div class="card p-5 mb-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="label mb-1">手動更新</div>
+                <p class="text-[10px] text-pink-400 font-bold leading-relaxed">拉取雲端最新版,免重新加入桌面捷徑</p>
+              </div>
+              <button id="check-update-btn" class="py-2 px-4 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black transition flex-shrink-0">🔄 檢查更新</button>
+            </div>
+          </div>
+
+          <div class="danger-card p-5 mt-8">
+            <div class="label mb-3" style="color: #DC2626;">⚠️ 危險區</div>
+            <div class="space-y-2">
+              <button id="switch-group-btn" class="w-full text-left px-4 py-3 bg-white border-2 border-pink-100 rounded-xl text-sm font-black text-rose-500 hover:border-pink-300 transition flex justify-between items-center">
+                <span>🔄 切換到其他群組</span><span class="text-pink-300">→</span>
+              </button>
+              <button id="leave-group-btn" class="w-full text-left px-4 py-3 bg-white border-2 border-amber-200 rounded-xl text-sm font-black text-amber-600 hover:bg-amber-50 transition flex justify-between items-center">
+                <span>👋 離開此群組(從本機移除)</span><span class="text-amber-400">→</span>
+              </button>
+              <button id="delete-group-btn" class="w-full text-left px-4 py-3 bg-white border-2 border-rose-200 rounded-xl text-sm font-black text-rose-600 hover:bg-rose-50 transition flex justify-between items-center">
+                <span>🗑️ 永久刪除此群組</span><span class="text-rose-400">→</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <button id="fab-add" class="fixed bottom-24 md:bottom-10 right-6 z-30 w-14 h-14 btn-primary rounded-full shadow-xl shadow-indigo-300/60 flex items-center justify-center">
+      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+    </button>
+
+    <nav class="mobile-only fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur-md border-t-2 border-pink-100">
+      <div class="max-w-2xl mx-auto grid grid-cols-3 px-2 py-2 bottom-nav-pad">
+        <button data-tab="expenses" class="tab-btn flex flex-col items-center gap-0.5 py-2 transition">
+          <span class="text-2xl">💸</span>
+          <span class="text-[10px] font-black">支出</span>
+          <div class="tab-dot w-6 h-1 rounded-full"></div>
+        </button>
+        <button data-tab="settle" class="tab-btn flex flex-col items-center gap-0.5 py-2 transition">
+          <span class="text-2xl">🧮</span>
+          <span class="text-[10px] font-black">結算</span>
+          <div class="tab-dot w-6 h-1 rounded-full"></div>
+        </button>
+        <button data-tab="settings" class="tab-btn flex flex-col items-center gap-0.5 py-2 transition">
+          <span class="text-2xl">🎀</span>
+          <span class="text-[10px] font-black">設定</span>
+          <div class="tab-dot w-6 h-1 rounded-full"></div>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ====== Modals ====== -->
+  <div id="modal-create" class="modal fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
+      <h2 class="text-xl font-black text-rose-600 mb-1">🎀 建立新群組</h2>
+      <p class="text-sm font-bold text-pink-400 mb-5">為這次活動取個名字</p>
+      <div class="space-y-4">
+        <div><div class="label mb-2">群組名稱 <span class="text-xs font-normal text-amber-600 ml-1">(最多 7 字)</span></div><input id="create-name" type="text" placeholder="例:京都之旅" maxlength="7" class="input-base"></div>
+        <div><div class="label mb-2">幣別</div>
+          <select id="create-currency" class="input-base">
+            <option value="TWD">台幣 NT$</option>
+            <option value="JPY">日幣 ¥</option>
+            <option value="KRW">韓元 ₩</option>
+          </select>
+        </div>
+        <div><div class="label mb-2">第一位成員(你的名字) <span class="text-xs font-normal text-amber-600 ml-1">(最多 7 字)</span></div><input id="create-first-member" type="text" placeholder="例:木木" maxlength="7" class="input-base"></div>
+      </div>
+      <div class="flex gap-2 mt-6">
+        <button id="modal-create-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
+        <button id="modal-create-ok" class="flex-1 py-3 btn-primary rounded-xl text-sm font-black">建立</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-join" class="modal fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-xl font-black text-rose-600 mb-1">🔑 加入群組</h2>
+      <p class="text-sm font-bold text-pink-400 mb-4">輸入群組碼或貼上整個連結</p>
+      <input id="join-code" type="text" placeholder="moo-winnie-xxxx 或 整串網址" class="input-base mb-2" autocomplete="off">
+      <button id="paste-clipboard-btn" class="w-full py-2 mb-3 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black transition">📋 從剪貼簿貼上</button>
+
+      <!-- 偵測 / 教學區 -->
+      <div id="join-preview" class="rounded-xl p-3 text-xs leading-relaxed border-2 mb-2" style="background: #FAF3E0; border-color: #E5DBC2; color: #6B5340;">
+        <!-- 內容由 JS 動態填入 -->
+      </div>
+
+      <div class="flex gap-2 mt-5">
+        <button id="modal-join-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
+        <button id="modal-join-ok" class="flex-1 py-3 btn-primary rounded-xl text-sm font-black">加入</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-expense" class="modal fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
+      <h2 id="modal-expense-title" class="text-xl font-black text-rose-600 mb-1">💸 新增支出</h2>
+      <p class="text-sm font-bold text-pink-400 mb-5">記錄這筆消費</p>
+      <div class="space-y-4">
+        <div><div class="label mb-2">項目名稱 <span class="text-xs font-normal text-amber-600 ml-1">(最多 7 字)</span></div><input id="ex-title" type="text" placeholder="例:一蘭拉麵" maxlength="7" class="input-base"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><div class="label mb-2">金額</div><input id="ex-cost" type="number" inputmode="decimal" placeholder="0" min="0" max="5000000" class="input-base"></div>
+          <div><div class="label mb-2">日期</div><input id="ex-date" type="date" class="input-base"></div>
+        </div>
+        <div><div class="label mb-2">誰代墊</div><select id="ex-payer" class="input-base"></select></div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="label">誰要分</div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <span class="text-xs font-black text-pink-500">自訂金額</span>
+              <span class="toggle-wrap">
+                <input id="ex-custom-toggle" type="checkbox">
+                <span class="toggle-track"></span>
+                <span class="toggle-thumb"></span>
+              </span>
+            </label>
+          </div>
+          <div id="ex-parts-chips" class="flex flex-wrap gap-2"></div>
+          <div id="ex-custom-shares" class="hidden mt-3 space-y-2"></div>
+          <div id="ex-custom-summary" class="hidden mt-3"></div>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-6">
+        <button id="modal-expense-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
+        <button id="modal-expense-ok" class="flex-1 py-3 btn-primary rounded-xl text-sm font-black">儲存</button>
+      </div>
+      <div id="modal-expense-delete-row" class="hidden mt-3 text-center">
+        <button id="modal-expense-delete" class="text-xs font-black text-rose-500 hover:text-rose-700">🗑️ 刪除此筆</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-confirm" class="modal fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-6">
+      <div id="modal-confirm-icon" class="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center text-3xl mb-3">⚠️</div>
+      <h2 id="modal-confirm-title" class="text-lg font-black text-rose-700 mb-1">確認</h2>
+      <p id="modal-confirm-body" class="text-sm font-medium text-rose-500 mb-6 leading-relaxed">--</p>
+      <div class="flex gap-2">
+        <button id="modal-confirm-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
+        <button id="modal-confirm-ok" class="flex-1 py-3 rounded-xl text-sm font-black text-white">確認</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-prompt" class="modal fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-6">
+      <h2 id="modal-prompt-title" class="text-lg font-black text-rose-600 mb-1">輸入</h2>
+      <p id="modal-prompt-body" class="text-sm font-medium text-pink-500 mb-4 leading-relaxed">--</p>
+      <input id="modal-prompt-input" type="text" maxlength="7" class="input-base mb-4">
+      <div class="flex gap-2">
+        <button id="modal-prompt-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
+        <button id="modal-prompt-ok" class="flex-1 py-3 btn-primary rounded-xl text-sm font-black">確認</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-switcher" class="modal fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-6 max-h-[80vh] overflow-y-auto">
+      <h2 class="text-xl font-black text-rose-600 mb-1">🔄 切換群組</h2>
+      <p class="text-sm font-bold text-pink-400 mb-4">選擇要進入的群組</p>
+      <div id="switcher-list" class="space-y-2 mb-4"></div>
+      <div class="grid grid-cols-2 gap-2 mb-2">
+        <button id="switcher-create-btn" class="py-3 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-sm font-black transition">🎀 建立新群組</button>
+        <button id="switcher-join-btn" class="py-3 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-sm font-black transition">🔑 加入群組</button>
+      </div>
+      <button id="switcher-close" class="w-full py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">關閉</button>
+    </div>
+  </div>
+
+  <div id="modal-avatar" class="modal fixed inset-0 z-50 bg-black/40 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
+      <h2 class="text-xl font-black text-rose-600 mb-1">挑個可愛頭像 ✨</h2>
+      <p id="modal-avatar-body" class="text-sm font-bold text-pink-400 mb-4">幫 -- 選一個</p>
+      <div id="avatar-grid" class="grid grid-cols-6 gap-2 mb-4"></div>
+      <div class="flex gap-2">
+        <button id="modal-avatar-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
+        <button id="modal-avatar-reset" class="flex-1 py-3 bg-pink-50 hover:bg-pink-100 text-rose-500 rounded-xl text-sm font-black transition">恢復預設</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden fixed top-6 left-1/2 -translate-x-1/2 z-[100] bg-rose-500 text-white px-4 py-2.5 rounded-2xl text-sm font-bold shadow-lg shadow-rose-200" style="top: calc(1.5rem + env(safe-area-inset-top));"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set as fbSet, update as fbUpdate, remove as fbRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = { databaseURL: "https://split-app-5c9d9-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+    const fbApp = initializeApp(firebaseConfig);
+    const db = getDatabase(fbApp);
+
+    const CURRENCIES = {
+      TWD: { symbol: 'NT$', label: '台幣' },
+      JPY: { symbol: '¥', label: '日幣' },
+      KRW: { symbol: '₩', label: '韓元' },
+    };
+    const GROUP_PREFIX = 'moo-winnie-';
+    const ID_CHARS = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+    const EMOJI_AVATARS = [
+      '🐮','🐰','🐱','🐶','🐻','🦊','🐼','🐯','🦁','🐸',
+      '🐧','🐳','🦄','🐢','🐙','🐹','🦔','🐨','🐷','🐔',
+      '🦉','🦒','🦦','🐤','🦥','🐵','🐺','🐴','🐬','🐡',
+      '🐿️','🦆','🦩','🦚','🐲','🐝','🦋','🦛','🐎','🦘',
+      '🦌','🐑','🐈','🦝','🐾'
+    ];
+
+    const state = {
+      groupId: null,
+      group: null,
+      currentUser: null,
+      currentTab: 'expenses',
+      sort: 'date-desc',
+      expandedExpense: null,
+      expandedPair: null,
+      editingExpenseId: null,
+      pendingConfirm: null,
+      pendingPrompt: null,
+      unsubscribe: null,
+    };
+
+    const ls = {
+      knownGroups() { try { return JSON.parse(localStorage.getItem('splitapp.knownGroups') || '[]'); } catch { return []; } },
+      saveKnownGroups(list) { localStorage.setItem('splitapp.knownGroups', JSON.stringify(list)); },
+      addKnownGroup(g) {
+        const list = ls.knownGroups().filter(x => x.id !== g.id);
+        list.unshift({ id: g.id, name: g.name, currency: g.currency, lastUsed: Date.now() });
+        ls.saveKnownGroups(list.slice(0, 20));
+      },
+      removeKnownGroup(id) { ls.saveKnownGroups(ls.knownGroups().filter(g => g.id !== id)); },
+      currentUser(gid) { return localStorage.getItem(`splitapp.user.${gid}`); },
+      setCurrentUser(gid, user) {
+        if (user) localStorage.setItem(`splitapp.user.${gid}`, user);
+        else localStorage.removeItem(`splitapp.user.${gid}`);
+      },
+      lastGroup() { return localStorage.getItem('splitapp.lastGroup'); },
+      setLastGroup(id) { if (id) localStorage.setItem('splitapp.lastGroup', id); else localStorage.removeItem('splitapp.lastGroup'); },
+    };
+
+    const $ = (s) => document.querySelector(s);
+    const $$ = (s) => document.querySelectorAll(s);
+
+    function genGroupId() {
+      let suffix = '';
+      for (let i = 0; i < 4; i++) suffix += ID_CHARS[Math.floor(Math.random() * ID_CHARS.length)];
+      return GROUP_PREFIX + suffix;
+    }
+    function fmt(amount, currency) {
+      const c = CURRENCIES[currency] || CURRENCIES.TWD;
+      return `${c.symbol} ${Math.round(amount).toLocaleString()}`;
+    }
+    function todayStr() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function dateShort(s) {
+      if (!s) return '--';
+      const [y, m, d] = s.split('-');
+      return `${parseInt(m)}/${parseInt(d)}`;
+    }
+    function nameHash(name) {
+      let h = 0;
+      for (let i = 0; i < String(name).length; i++) h = (h * 31 + String(name).charCodeAt(i)) >>> 0;
+      return h % 8;
+    }
+    function emojiForName(name) {
+      const avatars = state.group?.meta?.avatars || {};
+      if (avatars[name]) return avatars[name];
+      let h = 0;
+      for (let i = 0; i < String(name).length; i++) h = (h * 31 + String(name).charCodeAt(i)) >>> 0;
+      return EMOJI_AVATARS[h % EMOJI_AVATARS.length];
+    }
+    function avatar(name, size = 'md') {
+      const sizes = {
+        sm: { box: 'w-8 h-8', text: 'text-xl' },
+        md: { box: 'w-11 h-11', text: 'text-3xl' },
+        lg: { box: 'w-14 h-14', text: 'text-4xl' },
+      };
+      const s = sizes[size] || sizes.md;
+      const emoji = emojiForName(name);
+      return `<div class="avatar emoji-av av-${nameHash(name)} ${s.box} ${s.text}">${emoji}</div>`;
+    }
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+    function toast(msg) {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => t.classList.add('hidden'), 2200);
+    }
+
+    // ===== Computation =====
+    function getShares(e) {
+      if (!e) return {};
+      if (e.mode === 'custom') return e.shares || {};
+      const parts = e.parts || [];
+      if (parts.length === 0) return {};
+      const each = (e.cost || 0) / parts.length;
+      const out = {};
+      parts.forEach(p => out[p] = each);
+      return out;
+    }
+    function getExpenseDebts(e) {
+      const shares = getShares(e);
+      const whoPaid = e.whoPaid || [];
+      return Object.entries(shares)
+        .filter(([who, amt]) => who !== e.payer && amt > 0)
+        .map(([who, amt]) => ({ from: who, to: e.payer, amount: amt, paid: whoPaid.includes(who) }));
+    }
+    function getNetSettlement(expenses, members) {
+      const matrix = {};
+      members.forEach(m => matrix[m] = {});
+      (expenses || []).forEach(e => {
+        getExpenseDebts(e).forEach(d => {
+          if (!d.paid && matrix[d.from] && matrix[d.to] !== undefined) {
+            matrix[d.from][d.to] = (matrix[d.from][d.to] || 0) + d.amount;
+          }
+        });
+      });
+      const pairs = [];
+      for (let i = 0; i < members.length; i++) {
+        for (let j = i + 1; j < members.length; j++) {
+          const a = members[i], b = members[j];
+          const aob = matrix[a][b] || 0;
+          const boa = matrix[b][a] || 0;
+          if (aob > boa) pairs.push({ from: a, to: b, amount: aob - boa });
+          else if (boa > aob) pairs.push({ from: b, to: a, amount: boa - aob });
+        }
+      }
+      return pairs.filter(p => p.amount > 0.5);
+    }
+    function getPairSources(expenses, from, to) {
+      return (expenses || []).filter(e => getExpenseDebts(e).some(d => d.from === from && d.to === to && !d.paid));
+    }
+
+    // ===== Firebase =====
+    function loadGroup(groupId) {
+      if (state.unsubscribe) state.unsubscribe();
+      const r = ref(db, `groups/${groupId}`);
+      state.unsubscribe = onValue(r, (snap) => {
+        const data = snap.val();
+        if (!data) {
+          if (state.groupId === groupId) {
+            toast('找不到此群組');
+            ls.removeKnownGroup(groupId);
+            ls.setLastGroup(null);
+            state.groupId = null;
+            state.group = null;
+            state.currentUser = null;
+            history.replaceState(null, '', location.pathname);
+            navigate();
+          }
+          return;
+        }
+        state.group = {
+          meta: data.meta || {},
+          members: Array.isArray(data.members) ? data.members : Object.values(data.members || {}),
+          expenses: Array.isArray(data.expenses) ? data.expenses : Object.values(data.expenses || {}),
+        };
+        ls.addKnownGroup({ id: groupId, name: state.group.meta.name, currency: state.group.meta.currency });
+        const me = ls.currentUser(groupId);
+        state.currentUser = (me && state.group.members.includes(me)) ? me : null;
+        navigate();
+      });
+    }
+    function saveField(field, value) {
+      if (!state.groupId) return;
+      return fbSet(ref(db, `groups/${state.groupId}/${field}`), value);
+    }
+    async function createGroup(name, currency, firstMember) {
+      const id = genGroupId();
+      const data = {
+        meta: { name, currency, createdAt: Date.now(), creator: firstMember },
+        members: [firstMember],
+        expenses: [],
+      };
+      await fbSet(ref(db, `groups/${id}`), data);
+      ls.setCurrentUser(id, firstMember);
+      ls.setLastGroup(id);
+      state.groupId = id;
+      history.replaceState(null, '', `${location.pathname}?g=${id}`);
+      toast(`群組已建立 · ${id}`);
+      loadGroup(id);
+    }
+
+    // ===== Navigation =====
+    function show(screen) {
+      ['screen-home', 'screen-identity', 'screen-app'].forEach(s => {
+        $('#' + s).classList.toggle('hidden', s !== screen);
+      });
+    }
+    function navigate() {
+      const params = new URLSearchParams(location.search);
+      const urlGroup = params.get('g');
+      if (urlGroup) {
+        if (!/^moo-winnie-[abcdefghjkmnpqrstuvwxyz23456789]{3,8}$/i.test(urlGroup)) {
+          toast('連結內的群組碼格式不正確');
+          history.replaceState(null, '', location.pathname);
+        } else if (!state.groupId) {
+          state.groupId = urlGroup.toLowerCase();
+          ls.setLastGroup(state.groupId);
+          loadGroup(state.groupId);
+          return;
+        }
+      }
+      if (!state.groupId) {
+        const last = ls.lastGroup();
+        if (last) {
+          state.groupId = last;
+          loadGroup(last);
+          return;
+        }
+        renderHome();
+        show('screen-home');
+        return;
+      }
+      if (!state.group) return; // loading
+      if (!state.currentUser) {
+        renderIdentity();
+        show('screen-identity');
+        return;
+      }
+      renderApp();
+      show('screen-app');
+    }
+
+    function renderHome() {
+      const list = ls.knownGroups();
+      const container = $('#home-recent-container');
+      const listEl = $('#home-recent-list');
+      if (list.length === 0) { container.classList.add('hidden'); return; }
+      container.classList.remove('hidden');
+      listEl.innerHTML = list.map(g => `
+        <button data-gid="${escapeAttr(g.id)}" class="recent-group-btn w-full card p-4 flex items-center gap-3 text-left transition">
+          <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0" style="background: #ECF0DC; border: 1.5px solid #6B8E5A;">🌳</div>
+          <div class="flex-grow min-w-0">
+            <div class="font-black text-sm text-rose-700 truncate">${escapeHtml(g.name || '(未命名)')}</div>
+            <div class="text-xs font-bold text-pink-400 truncate">${CURRENCIES[g.currency]?.label || g.currency || ''} · ${escapeHtml(g.id)}</div>
+          </div>
+          <span class="text-pink-300 text-xl">→</span>
+        </button>
+      `).join('');
+      listEl.querySelectorAll('.recent-group-btn').forEach(b => {
+        b.onclick = () => {
+          const gid = b.dataset.gid;
+          state.groupId = gid;
+          ls.setLastGroup(gid);
+          history.replaceState(null, '', `${location.pathname}?g=${gid}`);
+          loadGroup(gid);
+        };
+      });
+    }
+
+    function renderIdentity() {
+      $('#identity-group-name').textContent = `群組:${state.group?.meta?.name || '--'} (${state.groupId})`;
+      const list = $('#identity-member-list');
+      const members = state.group?.members || [];
+      list.innerHTML = members.map(m => `
+        <button data-name="${escapeAttr(m)}" class="identity-pick w-full card p-4 flex items-center gap-3 text-left transition">
+          ${avatar(m, 'md')}
+          <span class="flex-grow font-black text-rose-700">${escapeHtml(m)}</span>
+          <span class="text-pink-300 text-xl">→</span>
+        </button>
+      `).join('') || '<p class="text-center text-sm font-bold text-pink-400 py-6">此群組還沒有成員</p>';
+      list.querySelectorAll('.identity-pick').forEach(b => {
+        b.onclick = () => {
+          ls.setCurrentUser(state.groupId, b.dataset.name);
+          state.currentUser = b.dataset.name;
+          navigate();
+        };
+      });
+    }
+
+    function renderApp() {
+      const g = state.group;
+      $('#header-group-name').textContent = g.meta.name || '(未命名)';
+      $('#header-currency').textContent = CURRENCIES[g.meta.currency]?.label || '';
+      $('#header-member-count').textContent = `${g.members.length} 人`;
+      $('#header-user').textContent = state.currentUser;
+
+      $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === state.currentTab));
+      $$('.page-content').forEach(p => p.classList.remove('active'));
+      $('#page-' + state.currentTab).classList.add('active');
+      $('#fab-add').classList.toggle('hidden', state.currentTab !== 'expenses');
+
+      if (state.currentTab === 'expenses') renderExpenses();
+      else if (state.currentTab === 'settle') renderSettle();
+      else if (state.currentTab === 'settings') renderSettings();
+    }
+
+    function renderExpenses() {
+      const g = state.group;
+      const currency = g.meta.currency;
+      const exps = [...(g.expenses || [])];
+      exps.sort((a, b) => {
+        if (state.sort === 'date-desc') return (b.date || '').localeCompare(a.date || '') || (b.createdAt || 0) - (a.createdAt || 0);
+        if (state.sort === 'date-asc') return (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0);
+        if (state.sort === 'amount-desc') return (b.cost || 0) - (a.cost || 0);
+        if (state.sort === 'amount-asc') return (a.cost || 0) - (b.cost || 0);
+        return 0;
+      });
+
+      const total = exps.reduce((s, e) => s + (e.cost || 0), 0);
+      const mine = exps.reduce((s, e) => s + (getShares(e)[state.currentUser] || 0), 0);
+      $('#sum-total').textContent = fmt(total, currency);
+      $('#sum-mine').textContent = fmt(mine, currency);
+      $('#sum-count').textContent = exps.length;
+      $('#sort-select').value = state.sort;
+
+      const listEl = $('#expense-list');
+      if (exps.length === 0) {
+        listEl.innerHTML = `<div class="text-center py-16"><div class="text-6xl mb-3">📝</div><p class="text-sm font-black text-pink-500 mb-1">還沒有支出唷~</p><p class="text-xs font-bold text-pink-400">點右下角 + 新增第一筆 💕</p></div>`;
+        return;
+      }
+
+      listEl.innerHTML = exps.map(e => {
+        const debts = getExpenseDebts(e);
+        const allPaid = debts.length > 0 && debts.every(d => d.paid);
+        const someUnpaid = debts.some(d => !d.paid);
+        const expanded = state.expandedExpense === e.id;
+        const partsCount = (e.mode === 'custom' ? Object.keys(e.shares || {}) : (e.parts || [])).length;
+        return `
+          <div class="card overflow-hidden ${allPaid ? 'settled-row' : ''}">
+            <button data-id="${escapeAttr(e.id)}" class="expense-toggle w-full p-4 text-left flex items-start gap-3 hover:bg-pink-50/40 transition">
+              ${avatar(e.payer, 'md')}
+              <div class="flex-grow min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="font-black text-rose-700 truncate">${escapeHtml(e.title || '(未命名)')}</h3>
+                  <span class="font-black text-rose-700 flex-shrink-0 stat-num">${fmt(e.cost, currency)}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-[11px] font-bold mt-0.5 flex-wrap">
+                  <span class="text-pink-500">${escapeHtml(e.payer)} 代墊</span>
+                  <span class="text-pink-200">·</span>
+                  <span class="text-amber-600">${dateShort(e.date)}</span>
+                  <span class="text-pink-200">·</span>
+                  <span class="text-pink-500">${partsCount} 人分</span>
+                  ${e.mode === 'custom' ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[10px]">⚖️ 自訂</span>' : ''}
+                  ${allPaid ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px]">✓ 已結清</span>' : someUnpaid && debts.some(d => d.paid) ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px]">部分結清</span>' : ''}
+                </div>
+              </div>
+              <span class="text-pink-300 text-sm flex-shrink-0 mt-1 transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
+            </button>
+            ${expanded ? `
+              <div class="border-t-2 border-dashed border-pink-100 p-4" style="background:#FFF7F0;">
+                <div class="label mb-2">原始債務</div>
+                <div class="space-y-1.5 mb-4">
+                  ${debts.length === 0 ? '<p class="text-xs font-bold text-pink-400 py-2">(代墊人自己出,無債務)</p>' :
+                    debts.map(d => {
+                      const canToggle = state.currentUser === d.from || state.currentUser === d.to;
+                      return `
+                        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl ${d.paid ? 'bg-emerald-50 border-2 border-emerald-200' : 'bg-white border-2 border-pink-100'}">
+                          <div class="flex items-center gap-2 min-w-0">
+                            ${avatar(d.from, 'sm')}
+                            <span class="text-pink-300 text-sm">➜</span>
+                            ${avatar(d.to, 'sm')}
+                            <span class="text-xs font-black text-rose-600 ml-1 truncate">${escapeHtml(d.from)} 欠 ${escapeHtml(d.to)}</span>
+                          </div>
+                          <div class="flex items-center gap-2 flex-shrink-0">
+                            <span class="text-xs font-black stat-num ${d.paid ? 'text-emerald-700' : 'text-rose-700'}">${fmt(d.amount, currency)}</span>
+                            <button data-exp="${escapeAttr(e.id)}" data-from="${escapeAttr(d.from)}" data-to="${escapeAttr(d.to)}"
+                              class="debt-check w-8 h-8 rounded-xl flex items-center justify-center transition ${d.paid ? 'bg-emerald-500 text-white' : 'bg-pink-100 text-pink-400 hover:bg-pink-200'} ${canToggle ? '' : 'opacity-40 cursor-not-allowed'}">
+                              ${d.paid ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>' : '○'}
+                            </button>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                </div>
+                <div class="flex justify-end gap-2">
+                  <button data-id="${escapeAttr(e.id)}" class="expense-edit px-4 py-1.5 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black">✏️ 編輯</button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('.expense-toggle').forEach(b => {
+        b.onclick = () => {
+          state.expandedExpense = state.expandedExpense === b.dataset.id ? null : b.dataset.id;
+          renderExpenses();
+        };
+      });
+      listEl.querySelectorAll('.debt-check').forEach(b => {
+        b.onclick = (ev) => {
+          ev.stopPropagation();
+          handleDebtToggle(b.dataset.exp, b.dataset.from, b.dataset.to);
+        };
+      });
+      listEl.querySelectorAll('.expense-edit').forEach(b => {
+        b.onclick = (ev) => { ev.stopPropagation(); openEditExpense(b.dataset.id); };
+      });
+    }
+
+    function handleDebtToggle(expId, from, to) {
+      const exp = state.group.expenses.find(e => e.id === expId);
+      if (!exp) return;
+      const whoPaid = exp.whoPaid || [];
+      const wasPaid = whoPaid.includes(from);
+      const currency = state.group.meta.currency;
+      const share = getShares(exp)[from] || 0;
+
+      if (state.currentUser !== from && state.currentUser !== to) {
+        toast('只有欠款人或代墊人可以操作');
+        return;
+      }
+
+      showConfirm({
+        title: wasPaid ? '取消還款紀錄?' : '確認還款?',
+        body: wasPaid
+          ? `將取消「${from} 已還 ${to} ${fmt(share, currency)}」這筆紀錄,該筆債務會重新出現在結算頁。`
+          : `確認 ${from} 已經把 ${fmt(share, currency)} 還給 ${to} 了嗎?`,
+        okText: wasPaid ? '取消還款' : '確認已還',
+        okStyle: wasPaid ? 'amber' : 'success',
+        onOk: () => {
+          const newWhoPaid = wasPaid ? whoPaid.filter(p => p !== from) : [...whoPaid, from];
+          const idx = state.group.expenses.findIndex(e => e.id === expId);
+          if (idx < 0) return;
+          const updated = { ...exp, whoPaid: newWhoPaid };
+          state.group.expenses[idx] = updated;
+          saveField('expenses', state.group.expenses);
+        }
+      });
+    }
+
+    function renderSettle() {
+      const g = state.group;
+      const currency = g.meta.currency;
+      const me = state.currentUser;
+      const pairs = getNetSettlement(g.expenses || [], g.members || []);
+
+      const myOwe = pairs.filter(p => p.from === me).reduce((s, p) => s + p.amount, 0);
+      const myGet = pairs.filter(p => p.to === me).reduce((s, p) => s + p.amount, 0);
+      const net = myGet - myOwe;
+      const amountEl = $('#personal-status-amount');
+      const labelEl = $('#personal-status-label');
+      const card = $('#personal-status-card');
+      card.className = 'card p-6 mb-6 text-center';
+      if (Math.abs(net) < 0.5) {
+        amountEl.textContent = fmt(0, currency);
+        amountEl.className = 'text-3xl font-black mb-1 text-slate-600 stat-num';
+        labelEl.innerHTML = '🎉 已結清,大家兩不相欠';
+      } else if (net > 0) {
+        amountEl.textContent = '+' + fmt(net, currency);
+        amountEl.className = 'text-3xl font-black mb-1 text-emerald-500 stat-num';
+        labelEl.innerHTML = `💰 可向他人收回 <span class="text-pink-400">(他人欠你 ${fmt(myGet, currency)} · 你欠他人 ${fmt(myOwe, currency)})</span>`;
+        card.style.borderColor = '#6B8E5A';
+        card.style.borderWidth = '2px';
+        card.style.background = 'linear-gradient(135deg, #ECF0DC, #FDFBF4)';
+      } else {
+        amountEl.textContent = '-' + fmt(-net, currency);
+        amountEl.className = 'text-3xl font-black mb-1 text-rose-500 stat-num';
+        labelEl.innerHTML = `💳 你需付給他人 <span class="text-pink-400">(你欠他人 ${fmt(myOwe, currency)} · 他人欠你 ${fmt(myGet, currency)})</span>`;
+        card.style.borderColor = '#C66B5C';
+        card.style.borderWidth = '2px';
+        card.style.background = 'linear-gradient(135deg, #F4DDD9, #FDFBF4)';
+      }
+      if (Math.abs(net) < 0.5) { card.style.borderColor = ''; card.style.borderWidth = ''; card.style.background = ''; }
+
+      // Group pairs by debtor (from)
+      const grouped = {};
+      pairs.forEach(p => {
+        if (!grouped[p.from]) grouped[p.from] = [];
+        grouped[p.from].push(p);
+      });
+      const debtors = Object.keys(grouped).sort((a, b) => {
+        if (a === me) return -1; if (b === me) return 1;
+        return a.localeCompare(b);
+      });
+
+      $('#settle-count').textContent = `(${debtors.length} 人需付款)`;
+
+      const listEl = $('#settlement-list');
+      if (pairs.length === 0) {
+        listEl.innerHTML = `<div class="text-center py-12 card"><div class="text-5xl mb-2">✨</div><p class="text-sm font-black text-pink-500">全部結清,大家兩不相欠</p></div>`;
+        return;
+      }
+      listEl.innerHTML = debtors.map(debtor => {
+        const items = grouped[debtor];
+        const isMe = debtor === me;
+        const totalOwe = items.reduce((s, p) => s + p.amount, 0);
+        return `
+          <div class="card p-5 mb-3" ${isMe ? 'style="border-color:#C66B5C;border-width:2px;background:linear-gradient(135deg,#F4DDD9,#FDFBF4);"' : ''}>
+            <div class="flex items-center justify-between mb-4 pb-3 border-b-2 border-dashed border-pink-100">
+              <div class="flex items-center gap-3 min-w-0">
+                ${avatar(debtor, 'md')}
+                <div class="min-w-0">
+                  <div class="font-black text-rose-700 truncate">${escapeHtml(debtor)}${isMe ? ' <span class="text-pink-500 text-xs">(我)</span>' : ''} 需要支付</div>
+                  <div class="text-[11px] font-bold text-pink-400">共 ${items.length} 筆 · 合計 ${fmt(totalOwe, currency)}</div>
+                </div>
+              </div>
+            </div>
+            <div class="space-y-2">
+              ${items.map(p => {
+                const key = `${p.from}->${p.to}`;
+                const expanded = state.expandedPair === key;
+                const sources = getPairSources(g.expenses, p.from, p.to);
+                return `
+                  <div class="rounded-xl overflow-hidden border-2 border-pink-100 bg-white">
+                    <button data-key="${escapeAttr(key)}" class="pair-toggle w-full px-3 py-3 text-left flex items-center gap-2 hover:bg-pink-50/40 transition">
+                      <span class="text-pink-300 text-lg">➜</span>
+                      ${avatar(p.to, 'sm')}
+                      <span class="flex-grow font-black text-rose-600 text-sm truncate">${escapeHtml(p.to)}</span>
+                      <span class="font-black text-rose-700 stat-num">${fmt(p.amount, currency)}</span>
+                      <span class="text-pink-300 text-xs flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
+                    </button>
+                    ${expanded ? `
+                      <div class="border-t-2 border-dashed border-pink-100 p-3 bg-pink-50/30">
+                        <div class="label mb-2">來源支出 (${sources.length})</div>
+                        <div class="space-y-1.5">
+                          ${sources.map(e => {
+                            const sh = getShares(e)[p.from] || 0;
+                            return `
+                              <button data-id="${escapeAttr(e.id)}" class="src-expense-btn w-full text-left flex items-center justify-between p-2.5 rounded-lg bg-white border-2 border-pink-100 hover:border-pink-300 transition">
+                                <div class="flex items-center gap-2 min-w-0">
+                                  <span class="text-xs">📝</span>
+                                  <span class="text-xs font-bold text-rose-700 truncate">${escapeHtml(e.title || '(未命名)')}</span>
+                                  <span class="text-[10px] text-pink-400 flex-shrink-0 font-bold">${dateShort(e.date)}</span>
+                                </div>
+                                <span class="text-xs font-black text-rose-700 flex-shrink-0 ml-2 stat-num">${fmt(sh, currency)}</span>
+                              </button>
+                            `;
+                          }).join('')}
+                        </div>
+                        <p class="text-[10px] text-pink-400 mt-3 text-center font-bold">點任一筆 → 跳到支出列表標記還款 💕</p>
+                      </div>
+                    ` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('.pair-toggle').forEach(b => {
+        b.onclick = () => {
+          state.expandedPair = state.expandedPair === b.dataset.key ? null : b.dataset.key;
+          renderSettle();
+        };
+      });
+      listEl.querySelectorAll('.src-expense-btn').forEach(b => {
+        b.onclick = () => {
+          state.expandedExpense = b.dataset.id;
+          state.currentTab = 'expenses';
+          renderApp();
+          setTimeout(() => {
+            const el = document.querySelector(`.expense-toggle[data-id="${b.dataset.id}"]`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        };
+      });
+    }
+
+    function renderSettings() {
+      const g = state.group;
+      $('#settings-group-name').textContent = g.meta.name || '(未命名)';
+      $('#settings-currency').value = g.meta.currency || 'TWD';
+      $('#settings-group-code').textContent = state.groupId;
+      $('#settings-my-name').textContent = state.currentUser || '(未選)';
+      const avEl = $('#settings-my-avatar');
+      const me = state.currentUser || '?';
+      avEl.className = `avatar emoji-av av-${nameHash(me)} w-11 h-11 text-xl cursor-pointer hover:scale-110 transition`;
+      avEl.textContent = emojiForName(me);
+      avEl.title = '點頭像可更換';
+      avEl.onclick = () => openAvatarPicker(me);
+
+      const memEl = $('#settings-member-list');
+      const creator = g.meta?.creator || g.members?.[0];
+      memEl.innerHTML = g.members.map(m => {
+        const isOwner = m === creator;
+        return `
+        <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-pink-50 transition">
+          <button class="mem-avatar-btn flex-shrink-0 hover:scale-110 transition" data-name="${escapeAttr(m)}" title="點頭像換 emoji">${avatar(m, 'sm')}</button>
+          <span class="flex-grow text-sm font-black text-rose-700 flex items-center gap-1 flex-wrap">
+            <span>${escapeHtml(m)}</span>
+            ${isOwner ? '<span class="text-base" title="群組老大">👑</span>' : ''}
+            ${m === state.currentUser ? '<span class="text-[10px] text-pink-500 font-black">(我)</span>' : ''}
+          </span>
+          <button data-name="${escapeAttr(m)}" class="mem-edit-btn text-xs px-2 py-1 hover:bg-pink-100 rounded font-bold text-pink-400" title="改名">✏️</button>
+          <button data-name="${escapeAttr(m)}" class="mem-del-btn text-xs px-2 py-1 hover:bg-rose-100 rounded font-bold text-rose-400" title="刪除">🗑️</button>
+        </div>
+      `;
+      }).join('') || '<p class="text-xs text-pink-300 text-center py-3 font-bold">沒有成員</p>';
+      memEl.querySelectorAll('.mem-avatar-btn').forEach(b => b.onclick = () => openAvatarPicker(b.dataset.name));
+      memEl.querySelectorAll('.mem-edit-btn').forEach(b => b.onclick = () => editMember(b.dataset.name));
+      memEl.querySelectorAll('.mem-del-btn').forEach(b => b.onclick = () => deleteMember(b.dataset.name));
+    }
+
+    function openAvatarPicker(memberName) {
+      const current = state.group?.meta?.avatars?.[memberName];
+      const auto = emojiForName(memberName);
+      $('#modal-avatar-body').textContent = `幫「${memberName}」選一個(目前:${current || auto + ' 預設'})`;
+      const grid = $('#avatar-grid');
+      grid.innerHTML = EMOJI_AVATARS.map(e => `
+        <button class="emoji-pick-btn ${current === e ? 'selected' : ''}" data-emoji="${e}">${e}</button>
+      `).join('');
+      grid.querySelectorAll('.emoji-pick-btn').forEach(b => {
+        b.onclick = () => {
+          const emoji = b.dataset.emoji;
+          const avatars = { ...(state.group.meta.avatars || {}) };
+          avatars[memberName] = emoji;
+          saveField('meta/avatars', avatars);
+          closeModal('modal-avatar');
+          toast(`已更新 ${memberName} 的頭像 ${emoji}`);
+        };
+      });
+      $('#modal-avatar-reset').onclick = () => {
+        const avatars = { ...(state.group.meta.avatars || {}) };
+        delete avatars[memberName];
+        saveField('meta/avatars', avatars);
+        closeModal('modal-avatar');
+        toast(`已恢復 ${memberName} 預設頭像`);
+      };
+      openModal('modal-avatar');
+    }
+
+    // ===== Modals =====
+    function openModal(id) { $('#' + id).classList.add('show'); }
+    function closeModal(id) { $('#' + id).classList.remove('show'); }
+
+    function showConfirm({ title, body, okText = '確認', cancelText = '取消', okStyle = 'primary', icon, onOk, onCancel }) {
+      $('#modal-confirm-title').textContent = title;
+      $('#modal-confirm-body').textContent = body;
+      $('#modal-confirm-cancel').textContent = cancelText;
+      const okBtn = $('#modal-confirm-ok');
+      okBtn.textContent = okText;
+      okBtn.className = 'flex-1 py-3 rounded-xl text-sm font-bold text-white transition';
+      const colorMap = {
+        primary: 'bg-indigo-600 hover:bg-indigo-700',
+        danger: 'bg-rose-500 hover:bg-rose-600',
+        success: 'bg-emerald-500 hover:bg-emerald-600',
+        amber: 'bg-amber-500 hover:bg-amber-600',
+      };
+      (colorMap[okStyle] || colorMap.primary).split(' ').forEach(c => okBtn.classList.add(c));
+      const iconEl = $('#modal-confirm-icon');
+      const iconMap = {
+        primary: { bg: 'bg-indigo-100', emoji: '❓' },
+        danger: { bg: 'bg-rose-100', emoji: '⚠️' },
+        success: { bg: 'bg-emerald-100', emoji: '✓' },
+        amber: { bg: 'bg-amber-100', emoji: '⚠️' },
+      };
+      const ii = iconMap[okStyle] || iconMap.primary;
+      iconEl.className = `w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 ${ii.bg}`;
+      iconEl.textContent = icon || ii.emoji;
+      state.pendingConfirm = { onOk, onCancel };
+      openModal('modal-confirm');
+    }
+
+    function showPrompt({ title, body = '', initial = '', placeholder = '', onOk }) {
+      $('#modal-prompt-title').textContent = title;
+      $('#modal-prompt-body').textContent = body;
+      $('#modal-prompt-body').classList.toggle('hidden', !body);
+      const input = $('#modal-prompt-input');
+      input.value = initial;
+      input.placeholder = placeholder;
+      state.pendingPrompt = { onOk };
+      openModal('modal-prompt');
+      setTimeout(() => { input.focus(); input.select(); }, 80);
+    }
+
+    // ===== Expense modal =====
+    function openNewExpense() {
+      state.editingExpenseId = null;
+      $('#modal-expense-title').textContent = '新增支出';
+      $('#ex-title').value = '';
+      $('#ex-cost').value = '';
+      $('#ex-date').value = todayStr();
+      $('#ex-payer').innerHTML = state.group.members.map(m => `<option value="${escapeAttr(m)}" ${m === state.currentUser ? 'selected' : ''}>${escapeHtml(m)}</option>`).join('');
+      $('#ex-custom-toggle').checked = false;
+      renderPartsChips(state.group.members);
+      $('#ex-custom-shares').classList.add('hidden');
+      $('#ex-custom-summary').classList.add('hidden');
+      $('#modal-expense-delete-row').classList.add('hidden');
+      openModal('modal-expense');
+      setTimeout(() => $('#ex-title').focus(), 80);
+    }
+
+    function openEditExpense(id) {
+      const e = state.group.expenses.find(x => x.id === id);
+      if (!e) { toast('找不到此筆'); return; }
+      state.editingExpenseId = id;
+      $('#modal-expense-title').textContent = '編輯支出';
+      $('#ex-title').value = e.title || '';
+      $('#ex-cost').value = e.cost || '';
+      $('#ex-date').value = e.date || todayStr();
+      $('#ex-payer').innerHTML = state.group.members.map(m => `<option value="${escapeAttr(m)}" ${m === e.payer ? 'selected' : ''}>${escapeHtml(m)}</option>`).join('');
+      const isCustom = e.mode === 'custom';
+      $('#ex-custom-toggle').checked = isCustom;
+      const selected = isCustom ? Object.keys(e.shares || {}) : (e.parts || []);
+      renderPartsChips(selected);
+      if (isCustom) {
+        renderCustomShares(selected, e.shares || {});
+        $('#ex-custom-shares').classList.remove('hidden');
+        $('#ex-custom-summary').classList.remove('hidden');
+        updateCustomSummary();
+      } else {
+        $('#ex-custom-shares').classList.add('hidden');
+        $('#ex-custom-summary').classList.add('hidden');
+      }
+      $('#modal-expense-delete-row').classList.remove('hidden');
+      openModal('modal-expense');
+    }
+
+    function renderPartsChips(selected) {
+      const el = $('#ex-parts-chips');
+      el.innerHTML = state.group.members.map(m => {
+        const sel = selected.includes(m);
+        return `<div class="chip ${sel ? 'selected' : ''}" data-name="${escapeAttr(m)}">${avatar(m, 'sm')}<span>${escapeHtml(m)}</span></div>`;
+      }).join('');
+      el.querySelectorAll('.chip').forEach(c => {
+        c.onclick = () => {
+          c.classList.toggle('selected');
+          if ($('#ex-custom-toggle').checked) {
+            const sel = Array.from(el.querySelectorAll('.chip.selected')).map(x => x.dataset.name);
+            renderCustomShares(sel);
+            updateCustomSummary();
+          }
+        };
+      });
+    }
+
+    function renderCustomShares(selectedNames, initialShares = {}) {
+      const el = $('#ex-custom-shares');
+      const cost = parseFloat($('#ex-cost').value) || 0;
+      const eachDefault = selectedNames.length ? Math.round(cost / selectedNames.length) : 0;
+      el.innerHTML = selectedNames.map(m => {
+        const val = initialShares[m] != null ? Math.round(initialShares[m]) : eachDefault;
+        return `
+          <div class="flex items-center gap-2">
+            ${avatar(m, 'sm')}
+            <span class="flex-grow text-sm font-black text-rose-700 truncate">${escapeHtml(m)}</span>
+            <input type="number" inputmode="decimal" data-name="${escapeAttr(m)}" value="${val}" min="0" max="5000000" class="custom-share-input bg-pink-50 border-2 border-pink-100 rounded-xl px-3 py-1.5 text-sm font-black w-24 text-right text-rose-700 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:bg-white">
+          </div>
+        `;
+      }).join('');
+      el.querySelectorAll('.custom-share-input').forEach(i => i.oninput = updateCustomSummary);
+    }
+
+    function updateCustomSummary() {
+      const cost = parseFloat($('#ex-cost').value) || 0;
+      const inputs = $$('.custom-share-input');
+      const sum = Array.from(inputs).reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+      const diff = cost - sum;
+      const el = $('#ex-custom-summary');
+      const ok = Math.abs(diff) < 0.5;
+      el.className = `mt-3 text-xs font-bold flex justify-between p-3 rounded-lg ${ok ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`;
+      el.innerHTML = `<span>已分配 ${fmt(sum, state.group.meta.currency)} / ${fmt(cost, state.group.meta.currency)}</span><span>${ok ? '✓ 對得上' : (diff > 0 ? '差 ' + fmt(diff, state.group.meta.currency) : '超出 ' + fmt(-diff, state.group.meta.currency))}</span>`;
+    }
+
+    function saveExpense() {
+      const g = state.group;
+      const title = $('#ex-title').value.trim();
+      const cost = parseFloat($('#ex-cost').value) || 0;
+      const date = $('#ex-date').value || todayStr();
+      const payer = $('#ex-payer').value;
+      const isCustom = $('#ex-custom-toggle').checked;
+      if (!title) { toast('請填項目名稱'); return; }
+      if (title.length > 7) { toast('項目名稱最多 7 個字'); return; }
+      if (cost <= 0) { toast('金額必須大於 0'); return; }
+      if (cost > 5000000) { toast('你太有錢,系統無法負荷!'); return; }
+      const selected = Array.from($$('#ex-parts-chips .chip.selected')).map(c => c.dataset.name);
+      if (selected.length === 0) { toast('至少選一個分帳者'); return; }
+
+      let entry;
+      if (isCustom) {
+        const shares = {};
+        let sum = 0;
+        let overLimit = false;
+        $$('.custom-share-input').forEach(i => {
+          const v = parseFloat(i.value) || 0;
+          if (v > 5000000) overLimit = true;
+          if (v > 0) shares[i.dataset.name] = v;
+          sum += v;
+        });
+        if (overLimit) { toast('你太有錢,系統無法負荷!'); return; }
+        if (Math.abs(sum - cost) > 0.5) { toast('自訂金額加總要等於總額'); return; }
+        if (Object.keys(shares).length === 0) { toast('至少有一人分帳'); return; }
+        entry = { id: state.editingExpenseId || genExpenseId(), title, cost, date, payer, mode: 'custom', shares, parts: Object.keys(shares), whoPaid: [] };
+      } else {
+        entry = { id: state.editingExpenseId || genExpenseId(), title, cost, date, payer, mode: 'equal', parts: selected, whoPaid: [] };
+      }
+
+      let exps = [...(g.expenses || [])];
+      if (state.editingExpenseId) {
+        const idx = exps.findIndex(e => e.id === state.editingExpenseId);
+        if (idx < 0) {
+          toast('此筆支出已被刪除,無法儲存');
+          closeModal('modal-expense');
+          return;
+        }
+        const old = exps[idx];
+        const newParts = entry.mode === 'custom' ? Object.keys(entry.shares) : entry.parts;
+        let prevWhoPaid = (old.whoPaid || []).filter(p => newParts.includes(p));
+        if (old.payer !== entry.payer) {
+          prevWhoPaid = prevWhoPaid.filter(p => p !== old.payer);
+        }
+        entry.whoPaid = prevWhoPaid;
+        if (newParts.includes(entry.payer) && !entry.whoPaid.includes(entry.payer)) entry.whoPaid.push(entry.payer);
+        entry.createdAt = old.createdAt;
+        exps[idx] = entry;
+      } else {
+        entry.whoPaid = entry.parts.includes(entry.payer) ? [entry.payer] : [];
+        entry.createdAt = Date.now();
+        exps.push(entry);
+      }
+
+      saveField('expenses', exps);
+      closeModal('modal-expense');
+    }
+
+    function genExpenseId() {
+      return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    // ===== Members =====
+    function addMember(name) {
+      const trimmed = String(name || '').trim();
+      if (!trimmed) { toast('名稱不可空白'); return false; }
+      if (trimmed.length > 7) { toast('名稱最多 7 個字'); return false; }
+      if (state.group.members.includes(trimmed)) { toast('已有同名成員'); return false; }
+      saveField('members', [...state.group.members, trimmed]);
+      return true;
+    }
+
+    function editMember(oldName) {
+      showPrompt({
+        title: '修改成員名稱',
+        body: `將 "${oldName}" 改名為:`,
+        initial: oldName,
+        onOk: (newName) => {
+          const n = String(newName || '').trim();
+          if (!n || n === oldName) return;
+          if (n.length > 7) { toast('名稱最多 7 個字'); return; }
+          if (state.group.members.includes(n)) { toast('已有同名成員'); return; }
+          const members = state.group.members.map(m => m === oldName ? n : m);
+          const expenses = state.group.expenses.map(e => {
+            const ne = { ...e };
+            if (ne.payer === oldName) ne.payer = n;
+            if (ne.parts) ne.parts = ne.parts.map(p => p === oldName ? n : p);
+            if (ne.whoPaid) ne.whoPaid = ne.whoPaid.map(p => p === oldName ? n : p);
+            if (ne.shares && ne.shares[oldName] != null) {
+              ne.shares = { ...ne.shares };
+              ne.shares[n] = ne.shares[oldName];
+              delete ne.shares[oldName];
+            }
+            return ne;
+          });
+          const updates = { members, expenses };
+          const currentAvatars = state.group.meta?.avatars || {};
+          if (currentAvatars[oldName]) {
+            const newAvatars = { ...currentAvatars };
+            newAvatars[n] = newAvatars[oldName];
+            delete newAvatars[oldName];
+            updates['meta/avatars'] = newAvatars;
+          }
+          if (state.group.meta?.creator === oldName) {
+            updates['meta/creator'] = n;
+          }
+          fbUpdate(ref(db, `groups/${state.groupId}`), updates);
+          if (state.currentUser === oldName) {
+            state.currentUser = n;
+            ls.setCurrentUser(state.groupId, n);
+          }
+          toast(`已改名為 ${n}`);
+        }
+      });
+    }
+
+    function deleteMember(name) {
+      if (!isCreator()) { toast('請洽詢群組老大進行操作 👑'); return; }
+      if (name === state.currentUser) { toast('不能刪除自己,請先切換身份'); return; }
+      if (state.group.members.length <= 1) { toast('至少要保留一位成員'); return; }
+      const creator = state.group?.meta?.creator || state.group?.members?.[0];
+      if (name === creator) { toast('不能刪除群組老大 👑'); return; }
+      const involved = state.group.expenses.filter(e =>
+        e.payer === name || (e.parts || []).includes(name) || (e.shares && e.shares[name] != null)
+      );
+      const body = involved.length > 0
+        ? `${name} 涉及 ${involved.length} 筆支出。刪除後,過往支出紀錄仍會保留 (含 ${name} 的金額),但 ${name} 不會出現在新支出選單中。確定刪除嗎?`
+        : `將從成員列表移除 "${name}"。`;
+      showConfirm({
+        title: '刪除成員?',
+        body,
+        okStyle: 'danger',
+        okText: '確定刪除',
+        onOk: () => {
+          saveField('members', state.group.members.filter(m => m !== name));
+          toast(`已移除 ${name}`);
+        }
+      });
+    }
+
+    // ===== Group actions =====
+    function isCreator() {
+      const creator = state.group?.meta?.creator || state.group?.members?.[0];
+      return state.currentUser === creator;
+    }
+
+    function leaveGroup() {
+      const gid = state.groupId;
+      const gname = state.group.meta.name;
+      showConfirm({
+        title: '離開此群組?',
+        body: `將從本機移除 "${gname}",但雲端資料保留。之後可用群組碼 ${gid} 重新加入。`,
+        okStyle: 'amber',
+        okText: '確認離開',
+        onOk: () => {
+          ls.removeKnownGroup(gid);
+          ls.setCurrentUser(gid, null);
+          ls.setLastGroup(null);
+          if (state.unsubscribe) state.unsubscribe();
+          state.groupId = null;
+          state.group = null;
+          state.currentUser = null;
+          history.replaceState(null, '', location.pathname);
+          navigate();
+          toast('已離開群組');
+        }
+      });
+    }
+
+    function deleteGroup() {
+      if (!isCreator()) { toast('請洽詢群組老大進行操作 👑'); return; }
+      const gid = state.groupId;
+      const gname = state.group.meta.name;
+      showConfirm({
+        title: '永久刪除此群組?',
+        body: `將從雲端完全刪除 "${gname}" 與所有支出紀錄,所有成員的資料都會消失,無法復原。`,
+        okStyle: 'danger',
+        okText: '我了解,繼續',
+        onOk: () => {
+          showPrompt({
+            title: '最後確認',
+            body: `請輸入群組名稱「${gname}」以確認刪除:`,
+            placeholder: gname,
+            onOk: async (confirm) => {
+              if (String(confirm || '').trim() !== gname) {
+                toast('名稱不符,取消刪除');
+                return;
+              }
+              await fbRemove(ref(db, `groups/${gid}`));
+              ls.removeKnownGroup(gid);
+              ls.setCurrentUser(gid, null);
+              ls.setLastGroup(null);
+              if (state.unsubscribe) state.unsubscribe();
+              state.groupId = null;
+              state.group = null;
+              state.currentUser = null;
+              history.replaceState(null, '', location.pathname);
+              navigate();
+              toast('已徹底刪除群組');
+            }
+          });
+        }
+      });
+    }
+
+    function openSwitcher() {
+      const list = ls.knownGroups();
+      const el = $('#switcher-list');
+      if (list.length === 0) {
+        el.innerHTML = '<p class="text-xs font-bold text-pink-400 text-center py-4">沒有加入過的群組</p>';
+      } else {
+        el.innerHTML = list.map(g => `
+          <button data-gid="${escapeAttr(g.id)}" class="sw-pick w-full p-3 flex items-center gap-3 rounded-2xl border-2 ${g.id === state.groupId ? 'border-pink-400 bg-pink-50' : 'border-pink-100 hover:border-pink-300 hover:bg-pink-50'} text-left transition">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style="background: #ECF0DC; border: 1.5px solid #6B8E5A;">🌳</div>
+            <div class="flex-grow min-w-0">
+              <div class="font-black text-sm text-rose-700 truncate">${escapeHtml(g.name || '(未命名)')}</div>
+              <div class="text-[10px] text-pink-400 font-bold truncate">${CURRENCIES[g.currency]?.label || g.currency || ''} · ${escapeHtml(g.id)}</div>
+            </div>
+            ${g.id === state.groupId ? '<span class="text-[10px] font-black text-rose-500 bg-white px-2 py-0.5 rounded-full">目前</span>' : ''}
+          </button>
+        `).join('');
+        el.querySelectorAll('.sw-pick').forEach(b => {
+          b.onclick = () => {
+            const gid = b.dataset.gid;
+            closeModal('modal-switcher');
+            if (gid === state.groupId) return;
+            if (state.unsubscribe) state.unsubscribe();
+            state.groupId = gid;
+            state.group = null;
+            state.currentUser = null;
+            ls.setLastGroup(gid);
+            history.replaceState(null, '', `${location.pathname}?g=${gid}`);
+            loadGroup(gid);
+          };
+        });
+      }
+      openModal('modal-switcher');
+    }
+
+    // ===== Bind events =====
+    $('#home-create-btn').onclick = () => openCreateGroup();
+    $('#home-join-btn').onclick = () => openJoinGroup();
+
+    $('#identity-add-member-btn').onclick = () => {
+      showPrompt({
+        title: '新增成員',
+        body: '輸入你的名字加入此群組',
+        placeholder: '例:阿傑',
+        onOk: (name) => {
+          const n = String(name || '').trim();
+          if (!n) return;
+          if (n.length > 7) { toast('名稱最多 7 個字'); return; }
+          if (state.group.members.includes(n)) {
+            ls.setCurrentUser(state.groupId, n);
+            state.currentUser = n;
+            navigate();
+            return;
+          }
+          if (addMember(n)) {
+            // 樂觀更新本機 state,不用等 Firebase 回應
+            if (state.group && !state.group.members.includes(n)) {
+              state.group.members = [...state.group.members, n];
+            }
+            ls.setCurrentUser(state.groupId, n);
+            state.currentUser = n;
+            navigate();
+          }
+        }
+      });
+    };
+    $('#identity-back-btn').onclick = () => {
+      ls.setLastGroup(null);
+      if (state.unsubscribe) state.unsubscribe();
+      state.groupId = null;
+      state.group = null;
+      history.replaceState(null, '', location.pathname);
+      navigate();
+    };
+
+    $('#header-switcher-btn').onclick = openSwitcher;
+    $('#switcher-close').onclick = () => closeModal('modal-switcher');
+    $('#switcher-create-btn').onclick = () => { closeModal('modal-switcher'); openCreateGroup(); };
+    $('#switcher-join-btn').onclick = () => { closeModal('modal-switcher'); openJoinGroup(); };
+
+    $$('.tab-btn').forEach(b => {
+      b.onclick = () => { state.currentTab = b.dataset.tab; renderApp(); };
+    });
+
+    $('#fab-add').onclick = openNewExpense;
+    $('#modal-expense-cancel').onclick = () => closeModal('modal-expense');
+    $('#modal-expense-ok').onclick = saveExpense;
+    $('#ex-custom-toggle').addEventListener('change', () => {
+      const on = $('#ex-custom-toggle').checked;
+      $('#ex-custom-shares').classList.toggle('hidden', !on);
+      $('#ex-custom-summary').classList.toggle('hidden', !on);
+      if (on) {
+        const sel = Array.from($$('#ex-parts-chips .chip.selected')).map(c => c.dataset.name);
+        renderCustomShares(sel);
+        updateCustomSummary();
+      }
+    });
+    $('#ex-cost').addEventListener('input', () => {
+      if ($('#ex-custom-toggle').checked) {
+        const sel = Array.from($$('#ex-parts-chips .chip.selected')).map(c => c.dataset.name);
+        renderCustomShares(sel);
+        updateCustomSummary();
+      }
+    });
+    $('#modal-expense-delete').onclick = () => {
+      const id = state.editingExpenseId;
+      if (!id) return;
+      const e = state.group.expenses.find(x => x.id === id);
+      showConfirm({
+        title: '刪除此筆支出?',
+        body: `將永久移除 "${e?.title || '(未命名)'}" ${fmt(e?.cost || 0, state.group.meta.currency)},無法復原。`,
+        okStyle: 'danger',
+        okText: '確定刪除',
+        onOk: () => {
+          saveField('expenses', state.group.expenses.filter(x => x.id !== id));
+          closeModal('modal-expense');
+          toast('已刪除');
+        }
+      });
+    };
+
+    $('#sort-select').onchange = (e) => { state.sort = e.target.value; renderExpenses(); };
+
+    $('#settings-currency').onchange = (e) => saveField('meta/currency', e.target.value);
+    $('#edit-group-name-btn').onclick = () => {
+      showPrompt({
+        title: '修改群組名稱',
+        initial: state.group.meta.name,
+        onOk: (n) => {
+          const t = String(n||'').trim();
+          if (!t) return;
+          if (t.length > 7) { toast('群組名稱最多 7 個字'); return; }
+          saveField('meta/name', t);
+        }
+      });
+    };
+    $('#copy-code-btn').onclick = async () => {
+      try { await navigator.clipboard.writeText(state.groupId); toast('群組碼已複製'); }
+      catch { toast('複製失敗,請手動複製'); }
+    };
+    $('#copy-url-btn').onclick = async () => {
+      const url = `${location.origin}${location.pathname}`;
+      try { await navigator.clipboard.writeText(url); toast('程式網址已複製'); }
+      catch { toast('複製失敗'); }
+    };
+    $('#switch-identity-btn').onclick = () => {
+      ls.setCurrentUser(state.groupId, null);
+      state.currentUser = null;
+      navigate();
+    };
+    $('#add-member-settings-btn').onclick = () => {
+      showPrompt({ title: '新增成員', placeholder: '名字', onOk: (name) => {
+        const n = String(name || '').trim();
+        if (!n) return;
+        if (addMember(n)) toast(`已新增 ${n}`);
+      }});
+    };
+    $('#switch-group-btn').onclick = openSwitcher;
+    $('#leave-group-btn').onclick = leaveGroup;
+    $('#delete-group-btn').onclick = deleteGroup;
+
+    $('#check-update-btn').onclick = async () => {
+      if (!navigator.onLine) { toast('目前離線,無法檢查更新'); return; }
+      toast('🔄 檢查更新中...');
+      try {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            await reg.update();
+            await new Promise(r => setTimeout(r, 600));
+            if (reg.waiting) {
+              toast('✨ 發現新版,正在套用...');
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              return;
+            }
+          }
+        }
+        toast('已是最新版,重新載入中...');
+        if ('caches' in window) {
+          try { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); } catch {}
+        }
+        setTimeout(() => window.location.reload(), 500);
+      } catch (e) {
+        setTimeout(() => window.location.reload(), 300);
+      }
+    };
+
+    $('#modal-confirm-ok').onclick = () => {
+      const p = state.pendingConfirm;
+      state.pendingConfirm = null;
+      closeModal('modal-confirm');
+      if (p?.onOk) p.onOk();
+    };
+    $('#modal-confirm-cancel').onclick = () => {
+      const p = state.pendingConfirm;
+      state.pendingConfirm = null;
+      closeModal('modal-confirm');
+      if (p?.onCancel) p.onCancel();
+    };
+    $('#modal-prompt-ok').onclick = () => {
+      const v = $('#modal-prompt-input').value;
+      const p = state.pendingPrompt;
+      state.pendingPrompt = null;
+      closeModal('modal-prompt');
+      if (p?.onOk) p.onOk(v);
+    };
+    $('#modal-prompt-cancel').onclick = () => {
+      state.pendingPrompt = null;
+      closeModal('modal-prompt');
+    };
+    $('#modal-prompt-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); $('#modal-prompt-ok').click(); }
+    });
+
+    function openCreateGroup() {
+      $('#create-name').value = '';
+      $('#create-currency').value = 'TWD';
+      $('#create-first-member').value = '';
+      openModal('modal-create');
+      setTimeout(() => $('#create-name').focus(), 80);
+    }
+    function openJoinGroup() {
+      $('#join-code').value = '';
+      updateJoinPreview('');
+      openModal('modal-join');
+      setTimeout(() => $('#join-code').focus(), 80);
+    }
+
+    function detectGroupCode(input) {
+      let raw = String(input || '').trim();
+      if (!raw) return { state: 'empty' };
+      const FULL_RE = /^moo-winnie-[abcdefghjkmnpqrstuvwxyz23456789]{3,8}$/i;
+      const SUFFIX_RE = /^[abcdefghjkmnpqrstuvwxyz23456789]{3,8}$/i;
+      // 嘗試當 URL 解析
+      try {
+        const u = new URL(raw);
+        const g = u.searchParams.get('g');
+        if (g && FULL_RE.test(g)) {
+          return { state: 'ok', code: g.toLowerCase(), via: 'url' };
+        }
+        if (g) return { state: 'invalid', reason: '網址裡的群組碼格式不對' };
+      } catch {}
+      // 完整群組碼
+      if (raw.toLowerCase().startsWith('moo-winnie-')) {
+        if (FULL_RE.test(raw)) {
+          return { state: 'ok', code: raw.toLowerCase(), via: 'full' };
+        }
+        return { state: 'invalid', reason: '群組碼格式不對(只能用 a-z 和 2-9,不含 i/l/o/0/1)' };
+      }
+      // 純後綴
+      if (SUFFIX_RE.test(raw)) {
+        return { state: 'ok', code: 'moo-winnie-' + raw.toLowerCase(), via: 'suffix' };
+      }
+      return { state: 'invalid', reason: '看起來不像群組碼' };
+    }
+
+    function updateJoinPreview(input) {
+      const el = $('#join-preview');
+      if (!el) return;
+      const r = detectGroupCode(input);
+      if (r.state === 'empty') {
+        el.style.background = '#FAF3E0';
+        el.style.borderColor = '#E5DBC2';
+        el.style.color = '#6B5340';
+        el.innerHTML = `
+          <div class="font-black mb-1.5" style="color:#7A5D14;">📖 怎麼加入群組?</div>
+          <ol class="space-y-1 pl-4 list-decimal" style="color:#6B5340;">
+            <li>把朋友傳的<b>整段網址</b>貼上,<b>或</b>輸入群組碼後 4 碼</li>
+            <li>點下方「加入」</li>
+            <li>選擇你在這個群組是誰</li>
+          </ol>
+          <div class="mt-2 pt-2 border-t border-dashed" style="border-color:#E5DBC2;">
+            <span class="font-black" style="color:#A8533F;">💡 提醒:</span><span style="color:#6B5340;">手機上點朋友的連結會開在 Safari,要加到桌面 PWA 需要回到 PWA 再貼一次群組碼。</span>
+          </div>
+        `;
+      } else if (r.state === 'ok') {
+        el.style.background = '#ECF0DC';
+        el.style.borderColor = '#6B8E5A';
+        el.style.color = '#4A6B3E';
+        const via = r.via === 'url' ? '從網址' : r.via === 'suffix' ? '從後 4 碼' : '完整碼';
+        el.innerHTML = `
+          <div class="font-black mb-1">✓ 偵測到群組碼(${via})</div>
+          <code class="block p-2 rounded-lg font-mono text-[11px]" style="background:#FDFBF4;border:1.5px solid #C4B89A;color:#4A6B3E;">${escapeHtml(r.code)}</code>
+          <div class="mt-2 font-bold" style="color:#6B5340;">點下方「加入」即可進入此群組 ✨</div>
+        `;
+      } else {
+        el.style.background = '#FBE5DF';
+        el.style.borderColor = '#C66B5C';
+        el.style.color = '#A8533F';
+        el.innerHTML = `
+          <div class="font-black mb-1">⚠️ ${escapeHtml(r.reason)}</div>
+          <div class="font-bold" style="color:#6B5340;">正確格式:<code style="background:#FDFBF4;padding:1px 6px;border-radius:6px;">moo-winnie-xxxx</code> 或網址 <code style="background:#FDFBF4;padding:1px 6px;border-radius:6px;">.../?g=moo-winnie-xxxx</code></div>
+        `;
+      }
+    }
+    $('#modal-create-cancel').onclick = () => closeModal('modal-create');
+    $('#modal-create-ok').onclick = async () => {
+      const name = $('#create-name').value.trim();
+      const currency = $('#create-currency').value;
+      const first = $('#create-first-member').value.trim();
+      if (!name) { toast('請填群組名稱'); return; }
+      if (name.length > 7) { toast('群組名稱最多 7 個字'); return; }
+      if (!first) { toast('請填你的名字'); return; }
+      if (first.length > 7) { toast('名稱最多 7 個字'); return; }
+      closeModal('modal-create');
+      await createGroup(name, currency, first);
+    };
+    $('#modal-join-cancel').onclick = () => closeModal('modal-join');
+    $('#paste-clipboard-btn').onclick = async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) { toast('剪貼簿是空的'); return; }
+        $('#join-code').value = text.trim();
+        updateJoinPreview(text);
+        toast('已貼上');
+      } catch (e) {
+        toast('無法讀取剪貼簿,請手動貼上');
+      }
+    };
+    $('#join-code').addEventListener('input', (e) => updateJoinPreview(e.target.value));
+    $('#modal-join-ok').onclick = () => {
+      const r = detectGroupCode($('#join-code').value);
+      if (r.state === 'empty') { toast('請輸入群組碼'); return; }
+      if (r.state === 'invalid') { toast(r.reason || '格式不正確'); return; }
+      const code = r.code;
+      closeModal('modal-join');
+      if (state.unsubscribe) state.unsubscribe();
+      state.groupId = code;
+      state.group = null;
+      state.currentUser = null;
+      ls.setLastGroup(code);
+      history.replaceState(null, '', `${location.pathname}?g=${code}`);
+      loadGroup(code);
+    };
+
+    $('#modal-avatar-cancel').onclick = () => closeModal('modal-avatar');
+
+    $$('.modal').forEach(m => {
+      m.addEventListener('click', (e) => {
+        if (e.target === m && !['modal-confirm', 'modal-prompt'].includes(m.id)) {
+          m.classList.remove('show');
+        }
+      });
+    });
+
+    // PWA manifest
+    const iconUrl = new URL('icon.png', location.href).href;
+    const manifest = {
+      name: '分帳小幫手',
+      short_name: '分帳',
+      description: '出門分帳,簡單清楚',
+      start_url: location.pathname,
+      scope: location.pathname,
+      display: 'standalone',
+      orientation: 'portrait',
+      background_color: '#F5EBDC',
+      theme_color: '#6B8E5A',
+      icons: [
+        { src: iconUrl, sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: iconUrl, sizes: '512x512', type: 'image/png', purpose: 'any' },
+        { src: iconUrl, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+    };
+    try {
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = URL.createObjectURL(blob);
+      document.head.appendChild(link);
+    } catch {}
+
+    navigate();
+
+    // ===== Level 1: 啟動畫面淡出 =====
+    setTimeout(() => {
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.classList.add('hide');
+        setTimeout(() => splash.remove(), 400);
+      }
+    }, 600);
+
+    // ===== Level 1: Service Worker 註冊(離線 + 快取)=====
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateBanner(newWorker);
+              }
+            });
+          });
+        }).catch(() => {});
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+      });
+    }
+
+    function showUpdateBanner(worker) {
+      const banner = document.getElementById('update-banner');
+      if (!banner) return;
+      banner.classList.remove('hidden');
+      $('#update-banner-btn').onclick = () => {
+        worker.postMessage({ type: 'SKIP_WAITING' });
+      };
+    }
+  </script>
+</body>
+</html>
