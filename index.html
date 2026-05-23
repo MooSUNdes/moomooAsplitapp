@@ -681,7 +681,7 @@
       <h2 class="text-xl font-black text-rose-600 mb-1">🎀 建立新群組</h2>
       <p class="text-sm font-bold text-pink-400 mb-5">為這次活動取個名字</p>
       <div class="space-y-4">
-        <div><div class="label mb-2">群組名稱 <span class="text-xs font-normal text-amber-600 ml-1">(最多 10 字)</span></div><input id="create-name" type="text" placeholder="例:京都櫻花之旅" maxlength="10" class="input-base"></div>
+        <div><div class="label mb-2">群組名稱 <span class="text-xs font-normal text-amber-600 ml-1">(最多 15 字)</span></div><input id="create-name" type="text" placeholder="例:京都櫻花之旅" maxlength="15" class="input-base"></div>
         <div><div class="label mb-2">幣別</div>
           <select id="create-currency" class="input-base">
             <option value="TWD">台幣 NT$</option>
@@ -689,7 +689,7 @@
             <option value="KRW">韓元 ₩</option>
           </select>
         </div>
-        <div><div class="label mb-2">第一位成員(你的名字) <span class="text-xs font-normal text-amber-600 ml-1">(最多 7 字)</span></div><input id="create-first-member" type="text" placeholder="例:木木" maxlength="7" class="input-base"></div>
+        <div><div class="label mb-2">第一位成員(你的名字) <span class="text-xs font-normal text-amber-600 ml-1">(最多 15 字)</span></div><input id="create-first-member" type="text" placeholder="例:木木" maxlength="15" class="input-base"></div>
       </div>
       <div class="flex gap-2 mt-6">
         <button id="modal-create-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
@@ -722,7 +722,7 @@
       <h2 id="modal-expense-title" class="text-xl font-black text-rose-600 mb-1">💸 新增支出</h2>
       <p class="text-sm font-bold text-pink-400 mb-5">記錄這筆消費</p>
       <div class="space-y-4">
-        <div><div class="label mb-2">項目名稱 <span class="text-xs font-normal text-amber-600 ml-1">(最多 7 字)</span></div><input id="ex-title" type="text" placeholder="例:一蘭拉麵" maxlength="7" class="input-base"></div>
+        <div><div class="label mb-2">項目名稱 <span class="text-xs font-normal text-amber-600 ml-1">(最多 15 字)</span></div><input id="ex-title" type="text" placeholder="例:一蘭拉麵" maxlength="15" class="input-base"></div>
         <div class="grid grid-cols-2 gap-3">
           <div><div class="label mb-2">金額</div><input id="ex-cost" type="number" inputmode="decimal" placeholder="0" min="0" max="5000000" class="input-base"></div>
           <div><div class="label mb-2">日期</div><input id="ex-date" type="date" class="input-base"></div>
@@ -771,7 +771,7 @@
     <div class="modal-content bg-white w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-6">
       <h2 id="modal-prompt-title" class="text-lg font-black text-rose-600 mb-1">輸入</h2>
       <p id="modal-prompt-body" class="text-sm font-medium text-pink-500 mb-4 leading-relaxed">--</p>
-      <input id="modal-prompt-input" type="text" maxlength="7" class="input-base mb-4">
+      <input id="modal-prompt-input" type="text" maxlength="15" class="input-base mb-4">
       <div class="flex gap-2">
         <button id="modal-prompt-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
         <button id="modal-prompt-ok" class="flex-1 py-3 btn-primary rounded-xl text-sm font-black">確認</button>
@@ -842,6 +842,9 @@
       pendingConfirm: null,
       pendingPrompt: null,
       unsubscribe: null,
+      expandedDates: new Set(),
+      expandedMonths: new Set(),
+      expandedDatesInitialized: false,
     };
 
     const ls = {
@@ -882,6 +885,27 @@
       if (!s) return '--';
       const [y, m, d] = s.split('-');
       return `${parseInt(m)}/${parseInt(d)}`;
+    }
+    function getDayLabel(date) {
+      if (!date) return '無日期';
+      const today = todayStr();
+      const [y, m, d] = date.split('-');
+      const curYear = new Date().getFullYear();
+      let core = parseInt(y) !== curYear ? `${y}/${parseInt(m)}/${parseInt(d)}` : `${parseInt(m)}/${parseInt(d)}`;
+      if (date === today) return `${core} · 今天`;
+      const yest = new Date(Date.now() - 86400000);
+      const yestStr = `${yest.getFullYear()}-${String(yest.getMonth()+1).padStart(2,'0')}-${String(yest.getDate()).padStart(2,'0')}`;
+      if (date === yestStr) return `${core} · 昨天`;
+      return core;
+    }
+    function getMonthLabel(month) {
+      if (!month) return '無月份';
+      const [y, m] = month.split('-');
+      const todayMonth = todayStr().substring(0, 7);
+      const curYear = new Date().getFullYear();
+      if (month === todayMonth) return `${parseInt(m)} 月 · 本月`;
+      if (parseInt(y) !== curYear) return `${y} 年 ${parseInt(m)} 月`;
+      return `${parseInt(m)} 月`;
     }
     function nameHash(name) {
       let h = 0;
@@ -965,6 +989,9 @@
     // ===== Firebase =====
     function loadGroup(groupId) {
       if (state.unsubscribe) state.unsubscribe();
+      state.expandedDates = new Set();
+      state.expandedMonths = new Set();
+      state.expandedDatesInitialized = false;
       const r = ref(db, `groups/${groupId}`);
       state.unsubscribe = onValue(r, (snap) => {
         const data = snap.val();
@@ -1142,68 +1169,49 @@
         return;
       }
 
-      listEl.innerHTML = exps.map(e => {
-        const debts = getExpenseDebts(e);
-        const allPaid = debts.length > 0 && debts.every(d => d.paid);
-        const someUnpaid = debts.some(d => !d.paid);
-        const expanded = state.expandedExpense === e.id;
-        const partsCount = (e.mode === 'custom' ? Object.keys(e.shares || {}) : (e.parts || [])).length;
-        return `
-          <div class="card overflow-hidden ${allPaid ? 'settled-row' : ''}">
-            <button data-id="${escapeAttr(e.id)}" class="expense-toggle w-full p-4 text-left flex items-start gap-3 hover:bg-pink-50/40 transition">
-              ${avatar(e.payer, 'md')}
-              <div class="flex-grow min-w-0">
-                <div class="flex items-start justify-between gap-2">
-                  <h3 class="font-black text-rose-700 truncate">${escapeHtml(e.title || '(未命名)')}</h3>
-                  <span class="font-black text-rose-700 flex-shrink-0 stat-num">${fmt(e.cost, currency)}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-[11px] font-bold mt-0.5 flex-wrap">
-                  <span class="text-pink-500">${escapeHtml(e.payer)} 代墊</span>
-                  <span class="text-pink-200">·</span>
-                  <span class="text-amber-600">${dateShort(e.date)}</span>
-                  <span class="text-pink-200">·</span>
-                  <span class="text-pink-500">${partsCount} 人分</span>
-                  ${e.mode === 'custom' ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[10px]">⚖️ 自訂</span>' : ''}
-                  ${allPaid ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px]">✓ 已結清</span>' : someUnpaid && debts.some(d => d.paid) ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px]">部分結清</span>' : ''}
-                </div>
-              </div>
-              <span class="text-pink-300 text-sm flex-shrink-0 mt-1 transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
-            </button>
-            ${expanded ? `
-              <div class="border-t-2 border-dashed border-pink-100 p-4" style="background:#FFF7F0;">
-                <div class="label mb-2">原始債務</div>
-                <div class="space-y-1.5 mb-4">
-                  ${debts.length === 0 ? '<p class="text-xs font-bold text-pink-400 py-2">(代墊人自己出,無債務)</p>' :
-                    debts.map(d => {
-                      const canToggle = state.currentUser === d.from || state.currentUser === d.to;
-                      return `
-                        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl ${d.paid ? 'bg-emerald-50 border-2 border-emerald-200' : 'bg-white border-2 border-pink-100'}">
-                          <div class="flex items-center gap-2 min-w-0">
-                            ${avatar(d.from, 'sm')}
-                            <span class="text-pink-300 text-sm">➜</span>
-                            ${avatar(d.to, 'sm')}
-                            <span class="text-xs font-black text-rose-600 ml-1 truncate">${escapeHtml(d.from)} 欠 ${escapeHtml(d.to)}</span>
-                          </div>
-                          <div class="flex items-center gap-2 flex-shrink-0">
-                            <span class="text-xs font-black stat-num ${d.paid ? 'text-emerald-700' : 'text-rose-700'}">${fmt(d.amount, currency)}</span>
-                            <button data-exp="${escapeAttr(e.id)}" data-from="${escapeAttr(d.from)}" data-to="${escapeAttr(d.to)}"
-                              class="debt-check w-8 h-8 rounded-xl flex items-center justify-center transition ${d.paid ? 'bg-emerald-500 text-white' : 'bg-pink-100 text-pink-400 hover:bg-pink-200'} ${canToggle ? '' : 'opacity-40 cursor-not-allowed'}">
-                              ${d.paid ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>' : '○'}
-                            </button>
-                          </div>
-                        </div>
-                      `;
-                    }).join('')}
-                </div>
-                <div class="flex justify-end gap-2">
-                  <button data-id="${escapeAttr(e.id)}" class="expense-edit px-4 py-1.5 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black">✏️ 編輯</button>
-                </div>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('');
+      // 初次展開:今天
+      if (!state.expandedDatesInitialized) {
+        state.expandedDates.add(todayStr());
+        state.expandedMonths.add(todayStr().substring(0, 7));
+        state.expandedDatesInitialized = true;
+      }
 
+      // 群組支出按日期
+      const byDate = {};
+      for (const e of exps) {
+        const d = e.date || '無日期';
+        if (!byDate[d]) byDate[d] = [];
+        byDate[d].push(e);
+      }
+      const allDates = Object.keys(byDate);
+      const allMonths = [...new Set(allDates.map(d => d.length >= 7 ? d.substring(0, 7) : '無月份'))];
+      const dateSort = state.sort === 'date-desc' || state.sort === 'date-asc';
+      const sortFn = (a, b) => {
+        // 無日期/無月份永遠排最後
+        if (a === '無日期' || a === '無月份') return 1;
+        if (b === '無日期' || b === '無月份') return -1;
+        return state.sort === 'date-asc' ? a.localeCompare(b) : b.localeCompare(a);
+      };
+      const sortedDates = [...allDates].sort(sortFn);
+      const sortedMonths = [...allMonths].sort(sortFn);
+
+      let html = '';
+      if (!dateSort || allDates.length <= 1) {
+        // 平鋪(非日期排序,或只有一天)
+        html = exps.map(e => renderExpenseCard(e, currency)).join('');
+      } else if (allMonths.length === 1) {
+        // 跨多日、同月:按日期分組
+        html = sortedDates.map(d => renderDateGroup(d, byDate[d], currency)).join('');
+      } else {
+        // 跨多月:外層按月分組,內層按日期分組
+        html = sortedMonths.map(m => {
+          const datesInMonth = sortedDates.filter(d => m === '無月份' ? d === '無日期' : d.startsWith(m));
+          return renderMonthGroup(m, datesInMonth, byDate, currency);
+        }).join('');
+      }
+      listEl.innerHTML = html;
+
+      // 事件綁定
       listEl.querySelectorAll('.expense-toggle').forEach(b => {
         b.onclick = () => {
           state.expandedExpense = state.expandedExpense === b.dataset.id ? null : b.dataset.id;
@@ -1219,6 +1227,131 @@
       listEl.querySelectorAll('.expense-edit').forEach(b => {
         b.onclick = (ev) => { ev.stopPropagation(); openEditExpense(b.dataset.id); };
       });
+      listEl.querySelectorAll('.date-toggle').forEach(b => {
+        b.onclick = () => {
+          const d = b.dataset.date;
+          if (state.expandedDates.has(d)) state.expandedDates.delete(d);
+          else state.expandedDates.add(d);
+          renderExpenses();
+        };
+      });
+      listEl.querySelectorAll('.month-toggle').forEach(b => {
+        b.onclick = () => {
+          const m = b.dataset.month;
+          if (state.expandedMonths.has(m)) state.expandedMonths.delete(m);
+          else state.expandedMonths.add(m);
+          renderExpenses();
+        };
+      });
+    }
+
+    function renderExpenseCard(e, currency) {
+      const debts = getExpenseDebts(e);
+      const allPaid = debts.length > 0 && debts.every(d => d.paid);
+      const someUnpaid = debts.some(d => !d.paid);
+      const expanded = state.expandedExpense === e.id;
+      const partsCount = (e.mode === 'custom' ? Object.keys(e.shares || {}) : (e.parts || [])).length;
+      return `
+        <div class="card overflow-hidden ${allPaid ? 'settled-row' : ''}">
+          <button data-id="${escapeAttr(e.id)}" class="expense-toggle w-full p-4 text-left flex items-start gap-3 hover:bg-pink-50/40 transition">
+            ${avatar(e.payer, 'md')}
+            <div class="flex-grow min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="font-black text-rose-700 truncate">${escapeHtml(e.title || '(未命名)')}</h3>
+                <span class="font-black text-rose-700 flex-shrink-0 stat-num">${fmt(e.cost, currency)}</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-[11px] font-bold mt-0.5 flex-wrap">
+                <span class="text-pink-500">${escapeHtml(e.payer)} 代墊</span>
+                <span class="text-pink-200">·</span>
+                <span class="text-amber-600">${dateShort(e.date)}</span>
+                <span class="text-pink-200">·</span>
+                <span class="text-pink-500">${partsCount} 人分</span>
+                ${e.mode === 'custom' ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[10px]">⚖️ 自訂</span>' : ''}
+                ${allPaid ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px]">✓ 已結清</span>' : someUnpaid && debts.some(d => d.paid) ? '<span class="ml-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px]">部分結清</span>' : ''}
+              </div>
+            </div>
+            <span class="text-pink-300 text-sm flex-shrink-0 mt-1 transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
+          </button>
+          ${expanded ? `
+            <div class="border-t-2 border-dashed border-pink-100 p-4" style="background:#FFF7F0;">
+              <div class="label mb-2">原始債務</div>
+              <div class="space-y-1.5 mb-4">
+                ${debts.length === 0 ? '<p class="text-xs font-bold text-pink-400 py-2">(代墊人自己出,無債務)</p>' :
+                  debts.map(d => {
+                    const canToggle = state.currentUser === d.from || state.currentUser === d.to;
+                    return `
+                      <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl ${d.paid ? 'bg-emerald-50 border-2 border-emerald-200' : 'bg-white border-2 border-pink-100'}">
+                        <div class="flex items-center gap-2 min-w-0">
+                          ${avatar(d.from, 'sm')}
+                          <span class="text-pink-300 text-sm">➜</span>
+                          ${avatar(d.to, 'sm')}
+                          <span class="text-xs font-black text-rose-600 ml-1 truncate">${escapeHtml(d.from)} 欠 ${escapeHtml(d.to)}</span>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                          <span class="text-xs font-black stat-num ${d.paid ? 'text-emerald-700' : 'text-rose-700'}">${fmt(d.amount, currency)}</span>
+                          <button data-exp="${escapeAttr(e.id)}" data-from="${escapeAttr(d.from)}" data-to="${escapeAttr(d.to)}"
+                            class="debt-check w-8 h-8 rounded-xl flex items-center justify-center transition ${d.paid ? 'bg-emerald-500 text-white' : 'bg-pink-100 text-pink-400 hover:bg-pink-200'} ${canToggle ? '' : 'opacity-40 cursor-not-allowed'}">
+                            ${d.paid ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>' : '○'}
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+              </div>
+              <div class="flex justify-end gap-2">
+                <button data-id="${escapeAttr(e.id)}" class="expense-edit px-4 py-1.5 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black">✏️ 編輯</button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function renderDateGroup(date, expensesInDate, currency) {
+      const expanded = state.expandedDates.has(date);
+      const total = expensesInDate.reduce((s, e) => s + (e.cost || 0), 0);
+      const label = getDayLabel(date);
+      const isToday = date === todayStr();
+      return `
+        <div class="mb-3">
+          <button data-date="${escapeAttr(date)}" class="date-toggle w-full flex items-center gap-3 p-3 mb-2 rounded-2xl text-left transition active:scale-[0.98]" style="background:${isToday ? '#ECF0DC' : '#FDFBF4'};border:1.5px solid ${isToday ? '#94A86A' : '#C4B89A'};">
+            <span class="text-lg">📅</span>
+            <div class="flex-grow min-w-0">
+              <div class="text-sm font-black text-rose-700">${escapeHtml(label)}</div>
+              <div class="text-[10px] font-bold text-pink-500">${expensesInDate.length} 筆 · ${fmt(total, currency)}</div>
+            </div>
+            <span class="text-pink-400 text-sm transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
+          </button>
+          ${expanded ? `<div class="space-y-3">${expensesInDate.map(e => renderExpenseCard(e, currency)).join('')}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function renderMonthGroup(month, datesInMonth, byDate, currency) {
+      const expanded = state.expandedMonths.has(month);
+      let totalCount = 0;
+      let totalCost = 0;
+      for (const d of datesInMonth) {
+        for (const e of byDate[d]) {
+          totalCount++;
+          totalCost += (e.cost || 0);
+        }
+      }
+      const label = getMonthLabel(month);
+      const isCurMonth = month === todayStr().substring(0, 7);
+      return `
+        <div class="mb-4">
+          <button data-month="${escapeAttr(month)}" class="month-toggle w-full flex items-center gap-3 p-4 mb-2 rounded-2xl text-left transition active:scale-[0.98]" style="background:${isCurMonth ? '#F4E2A5' : '#FDFBF4'};border:2px solid #D4A547;">
+            <span class="text-xl">📆</span>
+            <div class="flex-grow min-w-0">
+              <div class="text-base font-black" style="color:#7A5D14;">${escapeHtml(label)}</div>
+              <div class="text-[11px] font-bold" style="color:#9B7E2F;">${totalCount} 筆 · ${fmt(totalCost, currency)}</div>
+            </div>
+            <span style="color:#9B7E2F;" class="text-sm transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
+          </button>
+          ${expanded ? `<div class="pl-1">${datesInMonth.map(d => renderDateGroup(d, byDate[d], currency)).join('')}</div>` : ''}
+        </div>
+      `;
     }
 
     function handleDebtToggle(expId, from, to) {
@@ -1476,7 +1609,7 @@
       openModal('modal-confirm');
     }
 
-    function showPrompt({ title, body = '', initial = '', placeholder = '', maxLength = 7, onOk }) {
+    function showPrompt({ title, body = '', initial = '', placeholder = '', maxLength = 15, onOk }) {
       $('#modal-prompt-title').textContent = title;
       $('#modal-prompt-body').textContent = body;
       $('#modal-prompt-body').classList.toggle('hidden', !body);
@@ -1586,7 +1719,7 @@
       const payer = $('#ex-payer').value;
       const isCustom = $('#ex-custom-toggle').checked;
       if (!title) { toast('請填項目名稱'); return; }
-      if (title.length > 7) { toast('項目名稱最多 7 個字'); return; }
+      if (title.length > 15) { toast('項目名稱最多 15 個字'); return; }
       if (cost <= 0) { toast('金額必須大於 0'); return; }
       if (cost > 5000000) { toast('你太有錢,系統無法負荷!'); return; }
       const selected = Array.from($$('#ex-parts-chips .chip.selected')).map(c => c.dataset.name);
@@ -1647,7 +1780,7 @@
     function addMember(name) {
       const trimmed = String(name || '').trim();
       if (!trimmed) { toast('名稱不可空白'); return false; }
-      if (trimmed.length > 7) { toast('名稱最多 7 個字'); return false; }
+      if (trimmed.length > 15) { toast('名稱最多 15 個字'); return false; }
       if (state.group.members.includes(trimmed)) { toast('已有同名成員'); return false; }
       saveField('members', [...state.group.members, trimmed]);
       return true;
@@ -1661,7 +1794,7 @@
         onOk: (newName) => {
           const n = String(newName || '').trim();
           if (!n || n === oldName) return;
-          if (n.length > 7) { toast('名稱最多 7 個字'); return; }
+          if (n.length > 15) { toast('名稱最多 15 個字'); return; }
           if (state.group.members.includes(n)) { toast('已有同名成員'); return; }
           const members = state.group.members.map(m => m === oldName ? n : m);
           const expenses = state.group.expenses.map(e => {
@@ -1764,7 +1897,7 @@
             title: '最後確認',
             body: `請輸入群組名稱「${gname}」以確認刪除:`,
             placeholder: gname,
-            maxLength: 10,
+            maxLength: 15,
             onOk: async (confirm) => {
               if (String(confirm || '').trim() !== gname) {
                 toast('名稱不符,取消刪除');
@@ -1833,7 +1966,7 @@
         onOk: (name) => {
           const n = String(name || '').trim();
           if (!n) return;
-          if (n.length > 7) { toast('名稱最多 7 個字'); return; }
+          if (n.length > 15) { toast('名稱最多 15 個字'); return; }
           if (state.group.members.includes(n)) {
             ls.setCurrentUser(state.groupId, n);
             state.currentUser = n;
@@ -1914,11 +2047,11 @@
       showPrompt({
         title: '修改群組名稱',
         initial: state.group.meta.name,
-        maxLength: 10,
+        maxLength: 15,
         onOk: (n) => {
           const t = String(n||'').trim();
           if (!t) return;
-          if (t.length > 10) { toast('群組名稱最多 10 個字'); return; }
+          if (t.length > 15) { toast('群組名稱最多 15 個字'); return; }
           saveField('meta/name', t);
         }
       });
@@ -2088,9 +2221,9 @@
       const currency = $('#create-currency').value;
       const first = $('#create-first-member').value.trim();
       if (!name) { toast('請填群組名稱'); return; }
-      if (name.length > 10) { toast('群組名稱最多 10 個字'); return; }
+      if (name.length > 15) { toast('群組名稱最多 15 個字'); return; }
       if (!first) { toast('請填你的名字'); return; }
-      if (first.length > 7) { toast('名稱最多 7 個字'); return; }
+      if (first.length > 15) { toast('名稱最多 15 個字'); return; }
       closeModal('modal-create');
       await createGroup(name, currency, first);
     };
