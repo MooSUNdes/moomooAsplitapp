@@ -1535,13 +1535,23 @@
       });
       listEl.querySelectorAll('.src-expense-btn').forEach(b => {
         b.onclick = () => {
-          state.expandedExpense = b.dataset.id;
+          const id = b.dataset.id;
+          const exp = (state.group.expenses || []).find(x => x.id === id);
+          // 先把該筆所在的月份/日期群組展開,卡片才會被渲染
+          if (exp && exp.date) {
+            state.expandedMonths.add(exp.date.substring(0, 7));
+            state.expandedDates.add(exp.date);
+          } else {
+            state.expandedMonths.add('無月份');
+            state.expandedDates.add('無日期');
+          }
+          state.expandedExpense = id;
           state.currentTab = 'expenses';
           renderApp();
           setTimeout(() => {
-            const el = document.querySelector(`.expense-toggle[data-id="${b.dataset.id}"]`);
+            const el = document.querySelector(`.expense-toggle[data-id="${id}"]`);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 100);
+          }, 120);
         };
       });
     }
@@ -1819,6 +1829,11 @@
     }
 
     function editMember(oldName) {
+      const creator = state.group?.meta?.creator || state.group?.members?.[0];
+      if (oldName === creator && !isCreator()) {
+        toast('請洽詢群組老大進行操作 👑');
+        return;
+      }
       showPrompt({
         title: '修改成員名稱',
         body: `將 "${oldName}" 改名為:`,
