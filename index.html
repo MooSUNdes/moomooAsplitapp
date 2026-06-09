@@ -1339,22 +1339,32 @@
       `;
     }
 
+    // 葉子圖示(URL-encoded SVG),避免月曆 emoji 顯示誤導日期;放 day-icon.png / month-icon.png 即可換成自己的圖
+    const LEAF_GREEN = "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22%236B8E5A%22%3E%3Cpath%20d=%22M17%208C8%2010%205.9%2016.17%203.82%2021.34l1.89.66.95-2.3c.48.17.98.3%201.34.3C19%2020%2022%203%2022%203c-1%202-8%202.25-13%203.25S2%2011.5%202%2013.5s1.75%203.75%201.75%203.75C7%208%2017%208%2017%208z%22/%3E%3C/svg%3E";
+    const LEAF_AMBER = "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22%23D4A547%22%3E%3Cpath%20d=%22M17%208C8%2010%205.9%2016.17%203.82%2021.34l1.89.66.95-2.3c.48.17.98.3%201.34.3C19%2020%2022%203%2022%203c-1%202-8%202.25-13%203.25S2%2011.5%202%2013.5s1.75%203.75%201.75%203.75C7%208%2017%208%2017%208z%22/%3E%3C/svg%3E";
+    function dayIconHTML() {
+      return `<img src="day-icon.png" onerror="this.onerror=null;this.src='${LEAF_GREEN}'" class="w-6 h-6 object-contain flex-shrink-0" alt="">`;
+    }
+    function monthIconHTML() {
+      return `<img src="month-icon.png" onerror="this.onerror=null;this.src='${LEAF_AMBER}'" class="w-7 h-7 object-contain flex-shrink-0" alt="">`;
+    }
+
     function renderDateGroup(date, expensesInDate, currency) {
       const expanded = state.expandedDates.has(date);
       const total = expensesInDate.reduce((s, e) => s + (e.cost || 0), 0);
       const label = getDayLabel(date);
       const isToday = date === todayStr();
       return `
-        <div class="mb-3">
-          <button data-date="${escapeAttr(date)}" class="date-toggle w-full flex items-center gap-3 p-3 mb-2 rounded-2xl text-left transition active:scale-[0.98]" style="background:${isToday ? '#ECF0DC' : '#FDFBF4'};border:1.5px solid ${isToday ? '#94A86A' : '#C4B89A'};">
-            <span class="text-lg">📅</span>
+        <div class="mb-2.5">
+          <button data-date="${escapeAttr(date)}" class="date-toggle w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition active:scale-[0.98]" style="background:${isToday ? '#E2EBCD' : '#F0E8D6'};border:1.5px solid ${isToday ? '#94A86A' : '#D6CBAD'};">
+            ${dayIconHTML()}
             <div class="flex-grow min-w-0">
               <div class="text-sm font-black text-rose-700">${escapeHtml(label)}</div>
               <div class="text-[10px] font-bold text-pink-500">${expensesInDate.length} 筆 · ${fmt(total, currency)}</div>
             </div>
             <span class="text-pink-400 text-sm transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
           </button>
-          ${expanded ? `<div class="space-y-3">${expensesInDate.map(e => renderExpenseCard(e, currency)).join('')}</div>` : ''}
+          ${expanded ? `<div class="mt-2 ml-2.5 pl-3 space-y-2.5" style="border-left:2.5px solid #B9CC95;">${expensesInDate.map(e => renderExpenseCard(e, currency)).join('')}</div>` : ''}
         </div>
       `;
     }
@@ -1373,15 +1383,15 @@
       const isCurMonth = month === todayStr().substring(0, 7);
       return `
         <div class="mb-4">
-          <button data-month="${escapeAttr(month)}" class="month-toggle w-full flex items-center gap-3 p-4 mb-2 rounded-2xl text-left transition active:scale-[0.98]" style="background:${isCurMonth ? '#F4E2A5' : '#FDFBF4'};border:2px solid #D4A547;">
-            <span class="text-xl">📆</span>
+          <button data-month="${escapeAttr(month)}" class="month-toggle w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition active:scale-[0.98]" style="background:${isCurMonth ? '#F4E2A5' : '#F2E7C6'};border:2px solid #D4A547;box-shadow:0 2px 0 #C29A36;">
+            ${monthIconHTML()}
             <div class="flex-grow min-w-0">
               <div class="text-base font-black" style="color:#7A5D14;">${escapeHtml(label)}</div>
               <div class="text-[11px] font-bold" style="color:#9B7E2F;">${totalCount} 筆 · ${fmt(totalCost, currency)}</div>
             </div>
             <span style="color:#9B7E2F;" class="text-sm transition-transform ${expanded ? 'rotate-180' : ''}">▾</span>
           </button>
-          ${expanded ? `<div class="pl-1">${datesInMonth.map(d => renderDateGroup(d, byDate[d], currency)).join('')}</div>` : ''}
+          ${expanded ? `<div class="mt-2.5 ml-3 pl-3.5" style="border-left:3px solid #E0C766;">${datesInMonth.map(d => renderDateGroup(d, byDate[d], currency)).join('')}</div>` : ''}
         </div>
       `;
     }
