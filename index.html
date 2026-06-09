@@ -500,7 +500,7 @@
     <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b-2 border-pink-100">
       <div class="max-w-2xl mx-auto w-full px-4 md:px-6 py-3 flex items-center gap-3">
         <button id="header-switcher-btn" class="flex items-center gap-2.5 text-left flex-grow min-w-0 hover:bg-pink-50 -mx-2 px-2 py-1.5 rounded-xl transition">
-          <div id="header-group-emoji" class="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style="background: #ECF0DC; border: 1.5px solid #6B8E5A;">🌳</div>
+          <div id="header-group-emoji" class="flex-shrink-0"></div>
           <div class="min-w-0 flex-grow">
             <div class="flex items-center gap-1">
               <h1 id="header-group-name" class="text-base font-black text-rose-700 truncate">--</h1>
@@ -1105,7 +1105,7 @@
       container.classList.remove('hidden');
       listEl.innerHTML = list.map(g => `
         <button data-gid="${escapeAttr(g.id)}" class="recent-group-btn w-full card p-4 flex items-center gap-3 text-left transition">
-          <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0" style="background: #ECF0DC; border: 1.5px solid #6B8E5A;">🌳</div>
+          ${groupIconHTML('w-11 h-11')}
           <div class="flex-grow min-w-0">
             <div class="font-black text-sm text-rose-700 truncate">${escapeHtml(g.name || '(未命名)')}</div>
             <div class="text-xs font-bold text-pink-400 truncate">${CURRENCIES[g.currency]?.label || g.currency || ''} · ${escapeHtml(g.id)}</div>
@@ -1146,6 +1146,7 @@
 
     function renderApp() {
       const g = state.group;
+      $('#header-group-emoji').innerHTML = groupIconHTML('w-11 h-11');
       $('#header-group-name').textContent = g.meta.name || '(未命名)';
       $('#header-currency').textContent = CURRENCIES[g.meta.currency]?.label || '';
       $('#header-member-count').textContent = `${g.members.length} 人`;
@@ -1354,6 +1355,11 @@
     }
     function monthIconHTML() {
       return `<img src="month-icon.png" onerror="this.onerror=null;this.src='${LEAF_AMBER}'" class="w-11 h-11 rounded-full object-cover flex-shrink-0" style="border:2.5px solid #FFFFFF;box-shadow:0 2px 5px rgba(74,60,45,0.2);background:#FDFBF4;" alt="">`;
+    }
+    // 群組徽章:用自訂 icon.png,沒有時 fallback 一個金幣圖
+    const GROUP_FALLBACK = "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2048%2048%22%3E%3Crect%20width=%2248%22%20height=%2248%22%20rx=%2214%22%20fill=%22%23ECF0DC%22/%3E%3Ccircle%20cx=%2224%22%20cy=%2224%22%20r=%2212%22%20fill=%22%23D4A547%22/%3E%3Ccircle%20cx=%2224%22%20cy=%2224%22%20r=%228%22%20fill=%22none%22%20stroke=%22%23FFFFFF%22%20stroke-width=%222%22/%3E%3C/svg%3E";
+    function groupIconHTML(cls) {
+      return `<img src="icon.png" onerror="this.onerror=null;this.src='${GROUP_FALLBACK}'" class="${cls} rounded-2xl object-cover flex-shrink-0" style="border:1.5px solid #FFFFFF;box-shadow:0 1px 3px rgba(74,60,45,0.15);background:#ECF0DC;" alt="">`;
     }
 
     function renderDateGroup(date, expensesInDate, currency) {
@@ -2022,7 +2028,7 @@
       } else {
         el.innerHTML = list.map(g => `
           <button data-gid="${escapeAttr(g.id)}" class="sw-pick w-full p-3 flex items-center gap-3 rounded-2xl border-2 ${g.id === state.groupId ? 'border-pink-400 bg-pink-50' : 'border-pink-100 hover:border-pink-300 hover:bg-pink-50'} text-left transition">
-            <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style="background: #ECF0DC; border: 1.5px solid #6B8E5A;">🌳</div>
+            ${groupIconHTML('w-9 h-9')}
             <div class="flex-grow min-w-0">
               <div class="font-black text-sm text-rose-700 truncate">${escapeHtml(g.name || '(未命名)')}</div>
               <div class="text-[10px] text-pink-400 font-bold truncate">${CURRENCIES[g.currency]?.label || g.currency || ''} · ${escapeHtml(g.id)}</div>
