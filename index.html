@@ -767,7 +767,7 @@
     <div class="modal-content bg-white w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-6">
       <div id="modal-confirm-icon" class="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center text-3xl mb-3">⚠️</div>
       <h2 id="modal-confirm-title" class="text-lg font-black text-rose-700 mb-1">確認</h2>
-      <p id="modal-confirm-body" class="text-sm font-medium text-rose-500 mb-6 leading-relaxed">--</p>
+      <p id="modal-confirm-body" class="text-sm font-medium text-rose-500 mb-6 leading-relaxed" style="white-space:pre-line;">--</p>
       <div class="flex gap-2">
         <button id="modal-confirm-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
         <button id="modal-confirm-ok" class="flex-1 py-3 rounded-xl text-sm font-black text-white">確認</button>
@@ -816,7 +816,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue, set as fbSet, update as fbUpdate, remove as fbRemove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, set as fbSet, update as fbUpdate, remove as fbRemove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = { databaseURL: "https://split-app-5c9d9-default-rtdb.asia-southeast1.firebasedatabase.app/" };
     const fbApp = initializeApp(firebaseConfig);
@@ -957,9 +957,13 @@
       if (e.mode === 'custom') return e.shares || {};
       const parts = e.parts || [];
       if (parts.length === 0) return {};
-      const each = (e.cost || 0) / parts.length;
+      // 整數分帳:基本額 + 餘數分給前幾人,確保加總剛好等於總額(不再出現 33+33+33=99)
+      const cost = Math.round(e.cost || 0);
+      const n = parts.length;
+      const base = Math.floor(cost / n);
+      const remainder = cost - base * n;
       const out = {};
-      parts.forEach(p => out[p] = each);
+      parts.forEach((p, i) => { out[p] = base + (i < remainder ? 1 : 0); });
       return out;
     }
     function getExpenseDebts(e) {
@@ -1343,10 +1347,10 @@
     const LEAF_GREEN = "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22%236B8E5A%22%3E%3Cpath%20d=%22M17%208C8%2010%205.9%2016.17%203.82%2021.34l1.89.66.95-2.3c.48.17.98.3%201.34.3C19%2020%2022%203%2022%203c-1%202-8%202.25-13%203.25S2%2011.5%202%2013.5s1.75%203.75%201.75%203.75C7%208%2017%208%2017%208z%22/%3E%3C/svg%3E";
     const LEAF_AMBER = "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22%23D4A547%22%3E%3Cpath%20d=%22M17%208C8%2010%205.9%2016.17%203.82%2021.34l1.89.66.95-2.3c.48.17.98.3%201.34.3C19%2020%2022%203%2022%203c-1%202-8%202.25-13%203.25S2%2011.5%202%2013.5s1.75%203.75%201.75%203.75C7%208%2017%208%2017%208z%22/%3E%3C/svg%3E";
     function dayIconHTML() {
-      return `<img src="day-icon.png" onerror="this.onerror=null;this.src='${LEAF_GREEN}'" class="w-6 h-6 object-contain flex-shrink-0" alt="">`;
+      return `<img src="day-icon.png" onerror="this.onerror=null;this.src='${LEAF_GREEN}'" class="w-9 h-9 rounded-full object-cover flex-shrink-0" style="border:2px solid #FFFFFF;box-shadow:0 1px 4px rgba(74,60,45,0.18);background:#FDFBF4;" alt="">`;
     }
     function monthIconHTML() {
-      return `<img src="month-icon.png" onerror="this.onerror=null;this.src='${LEAF_AMBER}'" class="w-7 h-7 object-contain flex-shrink-0" alt="">`;
+      return `<img src="month-icon.png" onerror="this.onerror=null;this.src='${LEAF_AMBER}'" class="w-11 h-11 rounded-full object-cover flex-shrink-0" style="border:2.5px solid #FFFFFF;box-shadow:0 2px 5px rgba(74,60,45,0.2);background:#FDFBF4;" alt="">`;
     }
 
     function renderDateGroup(date, expensesInDate, currency) {
@@ -1417,12 +1421,17 @@
         okText: wasPaid ? '取消還款' : '確認已還',
         okStyle: wasPaid ? 'amber' : 'success',
         onOk: () => {
-          const newWhoPaid = wasPaid ? whoPaid.filter(p => p !== from) : [...whoPaid, from];
-          const idx = state.group.expenses.findIndex(e => e.id === expId);
-          if (idx < 0) return;
-          const updated = { ...exp, whoPaid: newWhoPaid };
-          state.group.expenses[idx] = updated;
-          saveField('expenses', state.group.expenses);
+          // 交易方式:重讀最新陣列再套用,避免覆蓋掉他人同時的修改
+          runTransaction(ref(db, `groups/${state.groupId}/expenses`), (current) => {
+            if (!current) return current;
+            const arr = Array.isArray(current) ? current : Object.values(current);
+            const idx = arr.findIndex(e => e && e.id === expId);
+            if (idx < 0) return current;
+            const wp = Array.isArray(arr[idx].whoPaid) ? arr[idx].whoPaid.slice() : [];
+            const has = wp.includes(from);
+            arr[idx].whoPaid = has ? wp.filter(p => p !== from) : [...wp, from];
+            return arr;
+          }).catch(() => toast('更新失敗,請重試'));
         }
       });
     }
@@ -1796,31 +1805,30 @@
         entry = { id: state.editingExpenseId || genExpenseId(), title, cost, date, payer, mode: 'equal', parts: selected, whoPaid: [] };
       }
 
-      let exps = [...(g.expenses || [])];
-      if (state.editingExpenseId) {
-        const idx = exps.findIndex(e => e.id === state.editingExpenseId);
-        if (idx < 0) {
-          toast('此筆支出已被刪除,無法儲存');
-          closeModal('modal-expense');
-          return;
+      const finalEntry = entry;
+      const editingId = state.editingExpenseId;
+      const nowTs = Date.now();
+      let editNotFound = false;
+      runTransaction(ref(db, `groups/${state.groupId}/expenses`), (current) => {
+        const arr = current ? (Array.isArray(current) ? current.slice() : Object.values(current)) : [];
+        if (editingId) {
+          const idx = arr.findIndex(e => e && e.id === editingId);
+          if (idx < 0) { editNotFound = true; return; }
+          editNotFound = false;
+          const old = arr[idx];
+          const newParts = finalEntry.mode === 'custom' ? Object.keys(finalEntry.shares) : finalEntry.parts;
+          let wp = (old.whoPaid || []).filter(p => newParts.includes(p));
+          if (old.payer !== finalEntry.payer) wp = wp.filter(p => p !== old.payer);
+          if (newParts.includes(finalEntry.payer) && !wp.includes(finalEntry.payer)) wp = [...wp, finalEntry.payer];
+          arr[idx] = { ...finalEntry, whoPaid: wp, createdAt: old.createdAt || nowTs };
+        } else {
+          const wp = finalEntry.parts.includes(finalEntry.payer) ? [finalEntry.payer] : [];
+          arr.push({ ...finalEntry, whoPaid: wp, createdAt: nowTs });
         }
-        const old = exps[idx];
-        const newParts = entry.mode === 'custom' ? Object.keys(entry.shares) : entry.parts;
-        let prevWhoPaid = (old.whoPaid || []).filter(p => newParts.includes(p));
-        if (old.payer !== entry.payer) {
-          prevWhoPaid = prevWhoPaid.filter(p => p !== old.payer);
-        }
-        entry.whoPaid = prevWhoPaid;
-        if (newParts.includes(entry.payer) && !entry.whoPaid.includes(entry.payer)) entry.whoPaid.push(entry.payer);
-        entry.createdAt = old.createdAt;
-        exps[idx] = entry;
-      } else {
-        entry.whoPaid = entry.parts.includes(entry.payer) ? [entry.payer] : [];
-        entry.createdAt = Date.now();
-        exps.push(entry);
-      }
-
-      saveField('expenses', exps);
+        return arr;
+      }).then(() => {
+        if (editNotFound) toast('此筆支出已被刪除,無法儲存');
+      }).catch(() => toast('儲存失敗,請重試'));
       closeModal('modal-expense');
     }
 
@@ -1896,9 +1904,27 @@
       const involved = state.group.expenses.filter(e =>
         e.payer === name || (e.parts || []).includes(name) || (e.shares && e.shares[name] != null)
       );
-      const body = involved.length > 0
-        ? `${name} 涉及 ${involved.length} 筆支出。刪除後,過往支出紀錄仍會保留 (含 ${name} 的金額),但 ${name} 不會出現在新支出選單中。確定刪除嗎?`
-        : `將從成員列表移除 "${name}"。`;
+      // 計算此人尚未結清的欠款 / 應收
+      let owes = 0, owed = 0;
+      const currency = state.group.meta.currency;
+      (state.group.expenses || []).forEach(e => {
+        getExpenseDebts(e).forEach(d => {
+          if (d.paid) return;
+          if (d.from === name) owes += d.amount;
+          if (d.to === name) owed += d.amount;
+        });
+      });
+      let body;
+      if (owes > 0.5 || owed > 0.5) {
+        const parts = [];
+        if (owes > 0.5) parts.push(`還欠別人 ${fmt(owes, currency)}`);
+        if (owed > 0.5) parts.push(`別人還欠 TA ${fmt(owed, currency)}`);
+        body = `⚠️ ${name} 目前${parts.join('、')},尚未結清!\n\n刪除後,這些未結清的帳會直接從結算頁消失,可能造成對帳混亂。建議先結清再刪除。確定仍要刪除嗎?`;
+      } else if (involved.length > 0) {
+        body = `${name} 涉及 ${involved.length} 筆支出(都已結清)。刪除後過往紀錄仍保留,但 ${name} 不會出現在新支出選單中。確定刪除嗎?`;
+      } else {
+        body = `將從成員列表移除 "${name}"。`;
+      }
       showConfirm({
         title: '刪除成員?',
         body,
@@ -2090,7 +2116,11 @@
         okStyle: 'danger',
         okText: '確定刪除',
         onOk: () => {
-          saveField('expenses', state.group.expenses.filter(x => x.id !== id));
+          runTransaction(ref(db, `groups/${state.groupId}/expenses`), (current) => {
+            if (!current) return current;
+            const arr = (Array.isArray(current) ? current : Object.values(current)).filter(x => x && x.id !== id);
+            return arr;
+          }).catch(() => toast('刪除失敗,請重試'));
           closeModal('modal-expense');
           toast('已刪除');
         }
