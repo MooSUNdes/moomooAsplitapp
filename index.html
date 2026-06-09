@@ -204,9 +204,9 @@
     --t-primary-dark: #4A6B3E;
     --t-primary-soft: #D9DFC5;
     --t-primary-tint: #ECF0DC;
-    --t-cta: #C66B5C;
-    --t-cta-dark: #A8533F;
-    --t-cta-soft: #F4DDD9;
+    --t-cta: #C25450;
+    --t-cta-dark: #A83F3B;
+    --t-cta-soft: #F5D9D6;
     --t-accent: #D4A547;
     --t-accent-soft: #F4E2A5;
     --t-accent-dark: #7A5D14;
@@ -224,10 +224,11 @@
     color: var(--t-text) !important;
     background-color: var(--t-bg) !important;
     background-image:
-      radial-gradient(ellipse at top left, rgba(212,165,71,0.12), transparent 50%),
-      radial-gradient(ellipse at bottom right, rgba(107,142,90,0.08), transparent 50%),
+      radial-gradient(ellipse at top left, rgba(107,142,90,0.12), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(194,84,80,0.08), transparent 50%),
+      radial-gradient(ellipse at top right, rgba(212,165,71,0.10), transparent 60%),
       url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 0.06 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>") !important;
-    background-size: auto, auto, 180px 180px !important;
+    background-size: auto, auto, auto, 180px 180px !important;
     background-attachment: fixed !important;
   }
 
@@ -307,7 +308,7 @@
 
   .danger-card {
     background: #FBE5DF !important;
-    border: 1.5px solid #C66B5C !important;
+    border: 1.5px solid #C25450 !important;
     border-radius: 1.25rem !important;
   }
 
@@ -324,6 +325,8 @@
 
   /* Tailwind 顏色覆蓋 - 文字 */
   .text-rose-700, .text-rose-600 { color: var(--t-primary-dark) !important; }
+  /* C 混搭風:金額數字(stat-num)用番茄紅,標題仍維持綠色 */
+  .stat-num.text-rose-700, .stat-num.text-rose-600 { color: var(--t-cta) !important; }
   .text-rose-500 { color: var(--t-cta) !important; }
   .text-rose-400 { color: var(--t-accent-dark) !important; }
   .text-pink-500, .text-pink-600 { color: var(--t-text-soft) !important; }
@@ -1464,9 +1467,9 @@
         amountEl.textContent = '-' + fmt(-net, currency);
         amountEl.className = 'text-3xl font-black mb-1 text-rose-500 stat-num';
         labelEl.innerHTML = `💳 你需付給他人 <span class="text-pink-400">(你欠他人 ${fmt(myOwe, currency)} · 他人欠你 ${fmt(myGet, currency)})</span>`;
-        card.style.borderColor = '#C66B5C';
+        card.style.borderColor = '#C25450';
         card.style.borderWidth = '2px';
-        card.style.background = 'linear-gradient(135deg, #F4DDD9, #FDFBF4)';
+        card.style.background = 'linear-gradient(135deg, #F5D9D6, #FDFBF4)';
       }
       if (Math.abs(net) < 0.5) { card.style.borderColor = ''; card.style.borderWidth = ''; card.style.background = ''; }
 
@@ -1493,7 +1496,7 @@
         const isMe = debtor === me;
         const totalOwe = items.reduce((s, p) => s + p.amount, 0);
         return `
-          <div class="card p-5 mb-3" ${isMe ? 'style="border-color:#C66B5C;border-width:2px;background:linear-gradient(135deg,#F4DDD9,#FDFBF4);"' : ''}>
+          <div class="card p-5 mb-3" ${isMe ? 'style="border-color:#C25450;border-width:2px;background:linear-gradient(135deg,#F5D9D6,#FDFBF4);"' : ''}>
             <div class="flex items-center justify-between mb-4 pb-3 border-b-2 border-dashed border-pink-100">
               <div class="flex items-center gap-3 min-w-0">
                 ${avatar(debtor, 'md')}
@@ -1842,7 +1845,12 @@
       if (!trimmed) { toast('名稱不可空白'); return false; }
       if (trimmed.length > 15) { toast('名稱最多 15 個字'); return false; }
       if (state.group.members.includes(trimmed)) { toast('已有同名成員'); return false; }
-      saveField('members', [...state.group.members, trimmed]);
+      // 交易方式:多人同時新增也不會互相覆蓋
+      runTransaction(ref(db, `groups/${state.groupId}/members`), (current) => {
+        const arr = current ? (Array.isArray(current) ? current.slice() : Object.values(current)) : [];
+        if (!arr.includes(trimmed)) arr.push(trimmed);
+        return arr;
+      }).catch(() => toast('新增失敗,請重試'));
       return true;
     }
 
@@ -1931,7 +1939,10 @@
         okStyle: 'danger',
         okText: '確定刪除',
         onOk: () => {
-          saveField('members', state.group.members.filter(m => m !== name));
+          runTransaction(ref(db, `groups/${state.groupId}/members`), (current) => {
+            if (!current) return current;
+            return (Array.isArray(current) ? current : Object.values(current)).filter(m => m !== name);
+          }).catch(() => toast('移除失敗,請重試'));
           toast(`已移除 ${name}`);
         }
       });
@@ -2295,7 +2306,7 @@
             <li>選擇你在這個群組是誰</li>
           </ol>
           <div class="mt-2 pt-2 border-t border-dashed" style="border-color:#E5DBC2;">
-            <span class="font-black" style="color:#A8533F;">💡 提醒:</span><span style="color:#6B5340;">手機上點朋友的連結會開在 Safari,要加到桌面 PWA 需要回到 PWA 再貼一次群組碼。</span>
+            <span class="font-black" style="color:#A83F3B;">💡 提醒:</span><span style="color:#6B5340;">手機上點朋友的連結會開在 Safari,要加到桌面 PWA 需要回到 PWA 再貼一次群組碼。</span>
           </div>
         `;
       } else if (r.state === 'ok') {
@@ -2310,8 +2321,8 @@
         `;
       } else {
         el.style.background = '#FBE5DF';
-        el.style.borderColor = '#C66B5C';
-        el.style.color = '#A8533F';
+        el.style.borderColor = '#C25450';
+        el.style.color = '#A83F3B';
         el.innerHTML = `
           <div class="font-black mb-1">⚠️ ${escapeHtml(r.reason)}</div>
           <div class="font-bold" style="color:#6B5340;">正確格式:<code style="background:#FDFBF4;padding:1px 6px;border-radius:6px;">moo-winnie-xxxx</code> 或網址 <code style="background:#FDFBF4;padding:1px 6px;border-radius:6px;">.../?g=moo-winnie-xxxx</code></div>
