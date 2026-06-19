@@ -419,6 +419,14 @@
   .page-content.active { animation: fadePage 0.25s ease-out !important; }
   @keyframes fadePage { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* 安裝教學平台分頁 */
+  .install-plat-tab { background:#F0E8D6; color:#9C8770; border:2px solid transparent; }
+  .install-plat-tab.active { background:#ECF0DC; color:#4A6B3E; border-color:#6B8E5A; }
+  .install-step { display:flex; gap:0.75rem; align-items:flex-start; }
+  .install-step-num { flex-shrink:0; width:1.6rem; height:1.6rem; border-radius:50%; background:#6B8E5A; color:#fff; font-weight:900; font-size:12px; display:flex; align-items:center; justify-content:center; }
+  .install-step-body { font-size:13px; font-weight:600; color:#6B5340; line-height:1.5; padding-top:1px; }
+  .install-step-body b { color:#A83F3B; }
+
   /* 禁止手機縮放/雙擊放大 (native app 感) */
   html, body {
     touch-action: manipulation;
@@ -634,12 +642,19 @@
           </div>
 
           <div class="card p-5 mb-4">
-            <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center justify-between gap-3 mb-3">
               <div class="min-w-0">
                 <div class="label mb-1">手動更新</div>
                 <p class="text-[10px] text-pink-400 font-bold leading-relaxed">拉取雲端最新版,免重新加入桌面捷徑</p>
               </div>
               <button id="check-update-btn" class="py-2 px-4 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black transition flex-shrink-0">🔄 檢查更新</button>
+            </div>
+            <div class="flex items-center justify-between gap-3 pt-3 border-t-2 border-dashed border-pink-100">
+              <div class="min-w-0">
+                <div class="label mb-1">加到桌面</div>
+                <p class="text-[10px] text-pink-400 font-bold leading-relaxed">把 app 裝到主畫面,開啟更快</p>
+              </div>
+              <button id="show-install-btn" class="py-2 px-4 bg-pink-100 hover:bg-pink-200 text-rose-600 rounded-xl text-xs font-black transition flex-shrink-0">📲 安裝教學</button>
             </div>
           </div>
 
@@ -812,6 +827,38 @@
         <button id="modal-avatar-cancel" class="flex-1 py-3 text-sm font-black text-pink-400 hover:bg-pink-50 rounded-xl transition">取消</button>
         <button id="modal-avatar-reset" class="flex-1 py-3 bg-pink-50 hover:bg-pink-100 text-rose-500 rounded-xl text-sm font-black transition">恢復預設</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ====== 安裝教學(第一次開啟)====== -->
+  <div id="modal-install" class="modal fixed inset-0 z-[120] bg-black/45 backdrop-blur-sm items-end md:items-center justify-center modal-backdrop">
+    <div class="modal-content bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-6 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center gap-3 mb-1">
+        <img src="icon.png" onerror="this.onerror=null;this.style.display='none';" class="w-12 h-12 rounded-2xl object-cover flex-shrink-0" style="border:1.5px solid #FFFFFF;box-shadow:0 1px 4px rgba(74,60,45,0.18);" alt="">
+        <div class="min-w-0">
+          <h2 class="text-lg font-black text-rose-600 leading-tight">把「分帳小幫手」<br>加到主畫面 📲</h2>
+        </div>
+        <button id="install-close-x" class="ml-auto self-start text-pink-300 hover:text-rose-500 text-xl font-black">✕</button>
+      </div>
+      <p class="text-sm font-bold text-pink-400 mb-4">裝起來就像真的 App,開啟更快、用起來更順 ✨</p>
+
+      <!-- 內嵌瀏覽器警告 -->
+      <div id="install-inapp-warning" class="hidden rounded-2xl p-3.5 mb-4" style="background:#FFF4D6;border:1.5px solid #E0C766;">
+        <p class="text-xs font-black mb-1" style="color:#9B5C14;">⚠️ 你正在用 <span id="install-inapp-name">LINE</span> 內建瀏覽器</p>
+        <p class="text-xs font-bold leading-relaxed" style="color:#7A5D14;">這個瀏覽器<b>無法安裝到桌面</b>。請先點右上角 <b>「⋯」→「用預設瀏覽器開啟」</b>(或 Safari / Chrome),再照下面步驟做。</p>
+      </div>
+
+      <!-- 平台切換 -->
+      <div id="install-platform-tabs" class="flex gap-2 mb-4">
+        <button data-plat="ios" class="install-plat-tab flex-1 py-2.5 rounded-xl text-sm font-black transition"> iPhone / iPad</button>
+        <button data-plat="android" class="install-plat-tab flex-1 py-2.5 rounded-xl text-sm font-black transition">🤖 Android</button>
+      </div>
+
+      <!-- 步驟 -->
+      <div id="install-steps" class="space-y-3 mb-5"></div>
+
+      <button id="install-ok-btn" class="w-full btn-primary rounded-2xl px-5 py-3.5 font-black text-base mb-2">我知道了,先逛逛</button>
+      <button id="install-never-btn" class="w-full text-xs font-bold text-pink-400 hover:text-rose-500 py-1">不用了,不要再提醒我</button>
     </div>
   </div>
 
@@ -2201,6 +2248,7 @@
     $('#leave-group-btn').onclick = leaveGroup;
     $('#delete-group-btn').onclick = deleteGroup;
 
+    $('#show-install-btn').onclick = () => openInstallGuide(true);
     $('#check-update-btn').onclick = async () => {
       if (!navigator.onLine) { toast('目前離線,無法檢查更新'); return; }
       toast('🔄 檢查更新中...');
@@ -2411,7 +2459,68 @@
       document.head.appendChild(link);
     } catch {}
 
+    // ===== 安裝教學(第一次開啟)=====
+    function isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+    function detectPlatform() {
+      const ua = navigator.userAgent || '';
+      if (/android/i.test(ua)) return 'android';
+      if (/iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+      return 'ios'; // 預設 iOS(可手動切換)
+    }
+    function detectInApp() {
+      const ua = navigator.userAgent || '';
+      if (/\bLine\//i.test(ua)) return 'LINE';
+      if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'Facebook';
+      if (/Instagram/i.test(ua)) return 'Instagram';
+      if (/MicroMessenger/i.test(ua)) return '微信';
+      if (/Threads/i.test(ua)) return 'Threads';
+      return null;
+    }
+    function renderInstallSteps(plat) {
+      const el = $('#install-steps');
+      const step = (n, body) => `<div class="install-step"><div class="install-step-num">${n}</div><div class="install-step-body">${body}</div></div>`;
+      if (plat === 'android') {
+        el.innerHTML =
+          step(1, '用 <b>Chrome</b> 開啟本頁(若是從 LINE 點進來,先用預設瀏覽器開)') +
+          step(2, '點右上角 <b>⋮</b> 選單') +
+          step(3, '點 <b>「安裝應用程式」</b> 或 <b>「加到主畫面」</b>') +
+          step(4, '完成!桌面就會出現分帳小幫手 🎉');
+      } else {
+        el.innerHTML =
+          step(1, '用 <b>Safari</b> 開啟本頁(若是從 LINE 點進來,先用預設瀏覽器開)') +
+          step(2, '點底部中間的 <b>分享 ⬆️</b> 按鈕') +
+          step(3, '往下滑,點 <b>「加入主畫面」</b>') +
+          step(4, '完成!桌面就會出現分帳小幫手 🎉');
+      }
+      $$('.install-plat-tab').forEach(b => b.classList.toggle('active', b.dataset.plat === plat));
+    }
+    function openInstallGuide(force) {
+      if (!force && isStandalone()) return; // 已安裝就不顯示
+      const inApp = detectInApp();
+      const warn = $('#install-inapp-warning');
+      if (inApp) {
+        warn.classList.remove('hidden');
+        $('#install-inapp-name').textContent = inApp;
+      } else {
+        warn.classList.add('hidden');
+      }
+      renderInstallSteps(detectPlatform());
+      openModal('modal-install');
+    }
+    $$('.install-plat-tab').forEach(b => b.onclick = () => renderInstallSteps(b.dataset.plat));
+    $('#install-close-x').onclick = () => { localStorage.setItem('splitapp.installSeen', '1'); closeModal('modal-install'); };
+    $('#install-ok-btn').onclick = () => { localStorage.setItem('splitapp.installSeen', '1'); closeModal('modal-install'); };
+    $('#install-never-btn').onclick = () => { localStorage.setItem('splitapp.installSeen', 'never'); closeModal('modal-install'); };
+
     navigate();
+
+    // 第一次開啟、且不是已安裝的 PWA → 顯示安裝教學
+    setTimeout(() => {
+      const seen = localStorage.getItem('splitapp.installSeen');
+      if (!seen && !isStandalone()) openInstallGuide(false);
+    }, 1100);
 
     // ===== Level 1: 啟動畫面淡出 =====
     setTimeout(() => {
