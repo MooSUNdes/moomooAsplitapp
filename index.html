@@ -1793,11 +1793,21 @@
           c.classList.toggle('selected');
           if ($('#ex-custom-toggle').checked) {
             const sel = Array.from(el.querySelectorAll('.chip.selected')).map(x => x.dataset.name);
-            renderCustomShares(sel);
+            renderCustomShares(sel, snapshotCustomShares());
             updateCustomSummary();
           }
         };
       });
+    }
+
+    // 快照目前自訂金額輸入,避免重繪時被清空
+    function snapshotCustomShares() {
+      const out = {};
+      $$('.custom-share-input').forEach(i => {
+        const v = parseFloat(i.value);
+        if (!isNaN(v)) out[i.dataset.name] = v;
+      });
+      return out;
     }
 
     function renderCustomShares(selectedNames, initialShares = {}) {
@@ -2166,7 +2176,7 @@
     $('#ex-cost').addEventListener('input', () => {
       if ($('#ex-custom-toggle').checked) {
         const sel = Array.from($$('#ex-parts-chips .chip.selected')).map(c => c.dataset.name);
-        renderCustomShares(sel);
+        renderCustomShares(sel, snapshotCustomShares());
         updateCustomSummary();
       }
     });
@@ -2428,6 +2438,7 @@
     $$('.modal').forEach(m => {
       m.addEventListener('click', (e) => {
         if (e.target === m && !['modal-confirm', 'modal-prompt'].includes(m.id)) {
+          if (m.id === 'modal-install') localStorage.setItem('splitapp.installSeen', '1');
           m.classList.remove('show');
         }
       });
